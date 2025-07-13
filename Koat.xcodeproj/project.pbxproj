@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3936200C2E23F8FA00DAC615 /* HotwireNative in Frameworks */ = {isa = PBXBuildFile; productRef = 3936200B2E23F8FA00DAC615 /* HotwireNative */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		39E569042DA776200083298D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3936200C2E23F8FA00DAC615 /* HotwireNative in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,12 +90,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3936200A2E23F8F500DAC615 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		39E568E42DA7761D0083298D = {
 			isa = PBXGroup;
 			children = (
 				39E568EF2DA7761D0083298D /* Koat */,
 				39E569062DA776200083298D /* KoatTests */,
 				39E569102DA776200083298D /* KoatUITests */,
+				3936200A2E23F8F500DAC615 /* Frameworks */,
 				39E568EE2DA7761D0083298D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -125,6 +138,7 @@
 			);
 			name = Koat;
 			packageProductDependencies = (
+				3936200B2E23F8FA00DAC615 /* HotwireNative */,
 			);
 			productName = Koat;
 			productReference = 39E568ED2DA7761D0083298D /* Koat.app */;
@@ -208,6 +222,9 @@
 			);
 			mainGroup = 39E568E42DA7761D0083298D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				393620012E23559400DAC615 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 39E568EE2DA7761D0083298D /* Products */;
 			projectDirPath = "";
@@ -563,6 +580,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		393620012E23559400DAC615 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hotwired/hotwire-native-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3936200B2E23F8FA00DAC615 /* HotwireNative */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 393620012E23559400DAC615 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */;
+			productName = HotwireNative;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 39E568E52DA7761D0083298D /* Project object */;
 }
