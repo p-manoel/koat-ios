@@ -1,0 +1,39 @@
+{
+  "settings": {
+    "pull_to_refresh_enabled": true
+  },
+  "rules": [
+    {
+      "patterns": ["^/$"],
+      "properties": {
+        "view_controller": "treino",
+        "pull_to_refresh_enabled": true
+      }
+    },
+    {
+      "patterns": ["^/workout_plans/[0-9]+$"],
+      "properties": {
+        "pull_to_refresh_enabled": true
+      }
+    },
+    {
+      "patterns": ["^/workout_plans/[0-9]+/routines/[0-9]+$"],
+      "properties": {
+        "pull_to_refresh_enabled": true
+      }
+    },
+    {
+      "patterns": ["^/session/new$", "^/login$"],
+      "properties": {
+        "context": "modal",
+        "pull_to_refresh_enabled": false
+      }
+    },
+    {
+      "patterns": ["^/session$", "^/logout$"],
+      "properties": {
+        "view_controller": "logout"
+      }
+    }
+  ]
+}

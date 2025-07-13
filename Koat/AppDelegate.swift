@@ -6,15 +6,73 @@
 //
 
 import UIKit
+import HotwireNative
+import WebKit
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Configure Hotwire
+        configureHotwire()
         return true
+    }
+    
+    private func configureHotwire() {
+        // Enable debug logging in development
+        #if DEBUG
+        Hotwire.config.debugLoggingEnabled = true
+        #endif
+        
+        // Show done button on modals (for login dismissal)
+        Hotwire.config.showDoneButtonOnModals = true
+        
+        // Configure navigation bar appearance
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithDefaultBackground()
+        
+        // Configure title appearance
+        appearance.titleTextAttributes = [
+            .foregroundColor: UIColor.label
+        ]
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor.label
+        ]
+        
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+        UINavigationBar.appearance().prefersLargeTitles = false
+        
+        // Set up shared process pool for cookie sharing between web views
+        let processPool = WKProcessPool()
+        
+        // Configure web view
+        Hotwire.config.makeCustomWebView = { configuration in
+            configuration.applicationNameForUserAgent = "Koat iOS (Hotwire Native)"
+            configuration.processPool = processPool
+            // Use the default persistent data store
+            configuration.websiteDataStore = .default()
+            let webView = WKWebView(frame: CGRect.zero, configuration: configuration)
+            return webView
+        }
+        
+        // Register bridge components
+        Hotwire.registerBridgeComponents([ButtonComponent.self])
+        
+        // Load path configuration
+        loadPathConfiguration()
+    }
+    
+    private func loadPathConfiguration() {
+        let localConfigURL = Bundle.main.url(forResource: "path-configuration", withExtension: "json")!
+        let remoteConfigURL = URL(string: "\(App.baseURL)/hotwire/native/v1/ios/path_configuration")!
+        
+        // Load with fallback
+        Hotwire.loadPathConfiguration(from: [
+            .file(localConfigURL),
+            .server(remoteConfigURL)
+        ])
     }
 
     // MARK: UISceneSession Lifecycle
