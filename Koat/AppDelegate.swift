@@ -53,6 +53,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             configuration.processPool = processPool
             // Use the default persistent data store
             configuration.websiteDataStore = .default()
+            
+            // Configure video playback behavior
+            configuration.allowsInlineMediaPlayback = true
+            configuration.mediaTypesRequiringUserActionForPlayback = []
+            configuration.allowsPictureInPictureMediaPlayback = false
+            
+            // Configure preferences for better video performance
+            configuration.preferences.javaScriptEnabled = true
+            configuration.preferences.isFraudulentWebsiteWarningEnabled = false
+            
+            // Allow air play for videos
+            configuration.allowsAirPlayForMediaPlayback = true
+            
             let webView = WKWebView(frame: CGRect.zero, configuration: configuration)
             return webView
         }
