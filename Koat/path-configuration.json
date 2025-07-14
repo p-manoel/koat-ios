@@ -7,30 +7,33 @@
       "patterns": ["^/$"],
       "properties": {
         "view_controller": "treino",
-        "pull_to_refresh_enabled": true
+        "pull_to_refresh_enabled": true,
+        "presentation": "replace"
       }
     },
     {
       "patterns": ["^/workout_plans/[0-9]+$"],
       "properties": {
-        "pull_to_refresh_enabled": true
+        "pull_to_refresh_enabled": true,
+        "presentation": "push"
       }
     },
     {
       "patterns": ["^/workout_plans/[0-9]+/routines/[0-9]+$"],
       "properties": {
-        "pull_to_refresh_enabled": true
+        "pull_to_refresh_enabled": true,
+        "presentation": "push"
       }
     },
     {
-      "patterns": ["^/session/new$", "^/login$"],
+      "patterns": ["^/session/new$"],
       "properties": {
-        "context": "modal",
-        "pull_to_refresh_enabled": false
+        "pull_to_refresh_enabled": false,
+        "presentation": "replace"
       }
     },
     {
-      "patterns": ["^/session$", "^/logout$"],
+      "patterns": ["^/session$"],
       "properties": {
         "view_controller": "logout"
       }
