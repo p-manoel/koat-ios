@@ -44,7 +44,6 @@ class TabBarController: UITabBarController {
                 
                 // Only update if URL changed
                 if currentURL != self?.currentURL {
-                    print("DEBUG: URL changed to: \(currentURL.absoluteString)")
                     self?.currentURL = currentURL
                     self?.updateTabBarVisibility(for: currentURL)
                 }
@@ -53,28 +52,22 @@ class TabBarController: UITabBarController {
     }
     
     private func updateTabBarVisibility(for url: URL) {
-        print("DEBUG: updateTabBarVisibility called with URL: \(url.absoluteString), path: \(url.path)")
-        
         // List of authentication-related paths where tab bar should be hidden
         let authPaths = ["/session/new", "/registration/new", "/password/new", "/password/edit"]
         let shouldHideTabBar = authPaths.contains(url.path)
         
         if shouldHideTabBar {
-            print("DEBUG: Hiding tab bar for auth page")
             tabBar.isHidden = true
             if let navController = treinoNavigator.rootViewController as? UINavigationController {
                 navController.setNavigationBarHidden(true, animated: false)
             }
         } else {
-            print("DEBUG: Showing tab bar for authenticated page")
             tabBar.isHidden = false
             if let navController = treinoNavigator.rootViewController as? UINavigationController {
                 navController.setNavigationBarHidden(false, animated: false)
                 navController.navigationBar.prefersLargeTitles = false
             }
         }
-        
-        print("DEBUG: Tab bar hidden state: \(tabBar.isHidden)")
     }
     
     func setupTabs() {
@@ -106,12 +99,7 @@ class TabBarController: UITabBarController {
         delegate = self
         
         // Don't navigate immediately - let the App handle initial navigation
-        // treinoNavigator.route(URL(string: "\(App.baseURL)")!)
-        
-        // Debug: Check for existing cookies after a delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            SessionManager.shared.logAllCookies(from: WKWebsiteDataStore.default())
-        }
+        // treinoNavigator.route(URL(string: "\(App.baseURL)")!")
     }
 }
 
@@ -119,8 +107,6 @@ class TabBarController: UITabBarController {
 
 extension TabBarController: NavigatorDelegate {
     func handle(proposal: VisitProposal) -> ProposalResult {
-        print("TabBarController NavigatorDelegate: Handling proposal for URL: \(proposal.url.absoluteString), path: \(proposal.url.path)")
-        
         // Store current URL
         currentURL = proposal.url
         
@@ -152,14 +138,11 @@ extension TabBarController: NavigatorDelegate {
     }
     
     func visitableDidRender() {
-        print("TabBarController NavigatorDelegate: visitableDidRender called")
-        
         // Check current URL after render
         DispatchQueue.main.async { [weak self] in
             if let navController = self?.treinoNavigator.rootViewController as? UINavigationController,
                let visitable = navController.visibleViewController as? VisitableViewController {
                 let currentURL = visitable.currentVisitableURL
-                print("DEBUG: visitableDidRender - Current URL: \(currentURL.absoluteString)")
                 self?.updateTabBarVisibility(for: currentURL)
                 self?.currentURL = currentURL
             }

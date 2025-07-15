@@ -50,8 +50,6 @@ final class App {
             }
             
             if hasSessionCookie {
-                print("App: Session cookie found, verifying with server")
-                
                 // Make a simple request to check if session is still valid
                 guard let verifyURL = URL(string: "\(App.baseURL)/") else { return }
                 var request = URLRequest(url: verifyURL)
@@ -63,18 +61,13 @@ final class App {
                 URLSession.shared.dataTask(with: request) { data, response, error in
                     DispatchQueue.main.async {
                         if let httpResponse = response as? HTTPURLResponse {
-                            print("App: Session verification response: \(httpResponse.statusCode)")
-                            
                             // If we get redirected to login, the session is invalid
                             if httpResponse.statusCode == 302 || httpResponse.statusCode == 401 {
-                                print("App: Session invalid, performing logout")
                                 self?.performLogout()
                             }
                         }
                     }
                 }.resume()
-            } else {
-                print("App: No session cookie found")
             }
         }
     }
@@ -105,8 +98,6 @@ extension App: NavigatorDelegate {
     }
     
     func performLogout() {
-        print("App: performLogout called")
-        
         // First, make the logout request to the server
         guard let logoutURL = URL(string: "\(App.baseURL)/session") else { return }
         
@@ -122,8 +113,6 @@ extension App: NavigatorDelegate {
             
             URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
                 DispatchQueue.main.async {
-                    print("App: Logout request completed")
-                    
                     // Clear all website data including cookies
                     let websiteDataTypes = Set([
                         WKWebsiteDataTypeCookies,
@@ -137,8 +126,6 @@ extension App: NavigatorDelegate {
                     
                     dataStore.removeData(ofTypes: websiteDataTypes,
                                        modifiedSince: Date(timeIntervalSince1970: 0)) { [weak self] in
-                        print("App: All website data cleared")
-                        
                         // Clear cookies from HTTPCookieStorage as well
                         if let cookies = HTTPCookieStorage.shared.cookies {
                             for cookie in cookies {
