@@ -51,14 +51,15 @@ class TabBarController: UITabBarController {
     private func updateTabBarVisibility(for url: URL) {
         print("DEBUG: updateTabBarVisibility called with URL: \(url.absoluteString), path: \(url.path)")
         
-        if url.path == "/session/new" {
-            print("DEBUG: Hiding tab bar for login page")
+        // Hide tab bar for login and registration pages
+        if url.path == "/session/new" || url.path == "/registration/new" {
+            print("DEBUG: Hiding tab bar for auth page")
             tabBar.isHidden = true
             if let navController = treinoNavigator.rootViewController as? UINavigationController {
                 navController.setNavigationBarHidden(true, animated: false)
             }
         } else {
-            print("DEBUG: Showing tab bar for non-login page")
+            print("DEBUG: Showing tab bar for non-auth page")
             tabBar.isHidden = false
             if let navController = treinoNavigator.rootViewController as? UINavigationController {
                 navController.setNavigationBarHidden(false, animated: false)
