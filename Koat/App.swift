@@ -36,7 +36,8 @@ final class App {
     }
     
     func start() {
-        // Simply start navigation
+        // Start navigation - the server will redirect to login if not authenticated
+        // The tab bar will remain hidden until we navigate to an authenticated page
         tabBarController.treinoNavigator.route(URL(string: "\(App.baseURL)")!)
     }
     

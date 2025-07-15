@@ -25,6 +25,10 @@ class TabBarController: UITabBarController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Hide tab bar initially until we know the user is authenticated
+        tabBar.isHidden = true
+        
         setupTabs()
         
         // Start monitoring navigation changes
@@ -51,15 +55,18 @@ class TabBarController: UITabBarController {
     private func updateTabBarVisibility(for url: URL) {
         print("DEBUG: updateTabBarVisibility called with URL: \(url.absoluteString), path: \(url.path)")
         
-        // Hide tab bar for login and registration pages
-        if url.path == "/session/new" || url.path == "/registration/new" {
+        // List of authentication-related paths where tab bar should be hidden
+        let authPaths = ["/session/new", "/registration/new", "/password/new", "/password/edit"]
+        let shouldHideTabBar = authPaths.contains(url.path)
+        
+        if shouldHideTabBar {
             print("DEBUG: Hiding tab bar for auth page")
             tabBar.isHidden = true
             if let navController = treinoNavigator.rootViewController as? UINavigationController {
                 navController.setNavigationBarHidden(true, animated: false)
             }
         } else {
-            print("DEBUG: Showing tab bar for non-auth page")
+            print("DEBUG: Showing tab bar for authenticated page")
             tabBar.isHidden = false
             if let navController = treinoNavigator.rootViewController as? UINavigationController {
                 navController.setNavigationBarHidden(false, animated: false)
@@ -82,6 +89,11 @@ class TabBarController: UITabBarController {
         // Configure tab bar items
         let treinoTab = treinoNavigator.rootViewController
         treinoTab.tabBarItem = UITabBarItem(title: "Treino", image: UIImage(systemName: "dumbbell"), tag: 0)
+        
+        // Hide navigation bar initially (will be shown when user is authenticated)
+        if let navController = treinoTab as? UINavigationController {
+            navController.setNavigationBarHidden(true, animated: false)
+        }
         
         // Create logout tab (this will be handled specially)
         let logoutViewController = UIViewController()
