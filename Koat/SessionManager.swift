@@ -23,7 +23,7 @@ class SessionManager {
     func persistCookies(from webView: WKWebView, completion: @escaping () -> Void) {
         webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
             // Filter for session cookies
-            let sessionCookies = cookies.filter { cookie in
+            _ = cookies.filter { cookie in
                 cookie.name.contains("session") || cookie.name == "_koat_session"
             }
             

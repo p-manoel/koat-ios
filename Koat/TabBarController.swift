@@ -12,6 +12,7 @@ import WebKit
 class TabBarController: UITabBarController {
     private let app: App
     var treinoNavigator: Navigator!
+    var profileNavigator: Navigator!
     private var currentURL: URL?
     
     init(app: App) {
@@ -38,15 +39,29 @@ class TabBarController: UITabBarController {
     private func startMonitoringNavigation() {
         // Use a timer to periodically check the current URL
         Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            if let navController = self?.treinoNavigator.rootViewController as? UINavigationController,
-               let visitable = navController.visibleViewController as? VisitableViewController {
-                let currentURL = visitable.currentVisitableURL
-                
-                // Only update if URL changed
-                if currentURL != self?.currentURL {
-                    self?.currentURL = currentURL
-                    self?.updateTabBarVisibility(for: currentURL)
+            guard let self = self else { return }
+            
+            var currentURL: URL?
+            
+            // Check which tab is selected and get the current URL from the appropriate navigator
+            if selectedIndex == 0 {
+                // Treino tab
+                if let navController = self.treinoNavigator.rootViewController as? UINavigationController,
+                   let visitable = navController.visibleViewController as? VisitableViewController {
+                    currentURL = visitable.currentVisitableURL
                 }
+            } else if selectedIndex == 1 {
+                // Profile tab
+                if let navController = self.profileNavigator.rootViewController as? UINavigationController,
+                   let visitable = navController.visibleViewController as? VisitableViewController {
+                    currentURL = visitable.currentVisitableURL
+                }
+            }
+            
+            // Only update if URL changed
+            if let url = currentURL, url != self.currentURL {
+                self.currentURL = url
+                self.updateTabBarVisibility(for: url)
             }
         }
     }
@@ -58,12 +73,21 @@ class TabBarController: UITabBarController {
         
         if shouldHideTabBar {
             tabBar.isHidden = true
-            if let navController = treinoNavigator.rootViewController as? UINavigationController {
+            // Hide navigation bar for both navigators
+            if let navController = treinoNavigator.rootViewController as UINavigationController? {
+                navController.setNavigationBarHidden(true, animated: false)
+            }
+            if let navController = profileNavigator.rootViewController as UINavigationController? {
                 navController.setNavigationBarHidden(true, animated: false)
             }
         } else {
             tabBar.isHidden = false
-            if let navController = treinoNavigator.rootViewController as? UINavigationController {
+            // Show navigation bar for both navigators
+            if let navController = treinoNavigator.rootViewController as UINavigationController? {
+                navController.setNavigationBarHidden(false, animated: false)
+                navController.navigationBar.prefersLargeTitles = false
+            }
+            if let navController = profileNavigator.rootViewController as UINavigationController? {
                 navController.setNavigationBarHidden(false, animated: false)
                 navController.navigationBar.prefersLargeTitles = false
             }
@@ -76,6 +100,10 @@ class TabBarController: UITabBarController {
         treinoNavigator = Navigator(configuration: .init(name: "treino", startLocation: startURL))
         treinoNavigator.delegate = self
         
+        // Create navigator for profile tab - start with same URL as treino
+        profileNavigator = Navigator(configuration: .init(name: "profile", startLocation: startURL))
+        profileNavigator.delegate = self
+        
         // Set initial URL
         currentURL = startURL
         
@@ -83,17 +111,32 @@ class TabBarController: UITabBarController {
         let treinoTab = treinoNavigator.rootViewController
         treinoTab.tabBarItem = UITabBarItem(title: "Treino", image: UIImage(systemName: "dumbbell"), tag: 0)
         
+        let profileTab = profileNavigator.rootViewController
+        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 1)
+        
         // Hide navigation bar initially (will be shown when user is authenticated)
-        if let navController = treinoTab as? UINavigationController {
+        if let navController = treinoTab as UINavigationController? {
             navController.setNavigationBarHidden(true, animated: false)
         }
         
-        // Create logout tab (this will be handled specially)
-        let logoutViewController = UIViewController()
-        logoutViewController.tabBarItem = UITabBarItem(title: "Sair", image: UIImage(systemName: "rectangle.portrait.and.arrow.right"), tag: 1)
+        if let navController = profileTab as UINavigationController? {
+            navController.setNavigationBarHidden(true, animated: false)
+        }
         
         // Set view controllers
-        viewControllers = [treinoTab, logoutViewController]
+        viewControllers = [treinoTab, profileTab]
+        
+        // Configure tab bar appearance
+        tabBar.tintColor = UIColor.systemBlue
+        tabBar.unselectedItemTintColor = UIColor.systemGray
+        
+        // Fix tab bar background
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+        tabBarAppearance.backgroundColor = UIColor.systemBackground
+        
+        tabBar.standardAppearance = tabBarAppearance
+        tabBar.scrollEdgeAppearance = tabBarAppearance
         
         // Set delegate to handle tab selection
         delegate = self
@@ -113,18 +156,15 @@ extension TabBarController: NavigatorDelegate {
         // Update tab bar visibility based on the URL
         updateTabBarVisibility(for: proposal.url)
         
-        // Handle logout
-        if proposal.viewController == "logout" {
-            app.performLogout()
-            return .reject
-        }
-        
         // Handle presentation types from path configuration
         if let presentation = proposal.properties["presentation"] as? String,
            presentation == "replace" {
-            // Clear the back stack after navigation
+            // Clear the back stack after navigation for the appropriate navigator
             DispatchQueue.main.async { [weak self] in
-                if let navController = self?.treinoNavigator.rootViewController as? UINavigationController,
+                // Determine which navigator to clear based on the URL
+                let navigator = proposal.url.path.starts(with: "/settings/") ? self?.profileNavigator : self?.treinoNavigator
+                
+                if let navController = navigator?.rootViewController as? UINavigationController,
                    navController.viewControllers.count > 1 {
                     if let lastVC = navController.viewControllers.last {
                         navController.setViewControllers([lastVC], animated: false)
@@ -138,13 +178,29 @@ extension TabBarController: NavigatorDelegate {
     }
     
     func visitableDidRender() {
-        // Check current URL after render
+        // Check current URL after render for the active navigator
         DispatchQueue.main.async { [weak self] in
-            if let navController = self?.treinoNavigator.rootViewController as? UINavigationController,
-               let visitable = navController.visibleViewController as? VisitableViewController {
-                let currentURL = visitable.currentVisitableURL
-                self?.updateTabBarVisibility(for: currentURL)
-                self?.currentURL = currentURL
+            guard let self = self else { return }
+            
+            var currentURL: URL?
+            
+            if selectedIndex == 0 {
+                // Treino tab
+                if let navController = self.treinoNavigator.rootViewController as? UINavigationController,
+                   let visitable = navController.visibleViewController as? VisitableViewController {
+                    currentURL = visitable.currentVisitableURL
+                }
+            } else if selectedIndex == 1 {
+                // Profile tab
+                if let navController = self.profileNavigator.rootViewController as? UINavigationController,
+                   let visitable = navController.visibleViewController as? VisitableViewController {
+                    currentURL = visitable.currentVisitableURL
+                }
+            }
+            
+            if let url = currentURL {
+                self.updateTabBarVisibility(for: url)
+                self.currentURL = url
             }
         }
     }
@@ -154,25 +210,10 @@ extension TabBarController: NavigatorDelegate {
 
 extension TabBarController: UITabBarControllerDelegate {
     func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
-        // Check if this is the logout tab
+        // Check if this is the profile tab
         if viewController.tabBarItem.tag == 1 {
-            // Show confirmation alert
-            let alert = UIAlertController(
-                title: "Sair",
-                message: "Tem certeza que deseja sair?",
-                preferredStyle: .alert
-            )
-            
-            alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel, handler: nil))
-            
-            alert.addAction(UIAlertAction(title: "Sair", style: .destructive) { [weak self] _ in
-                // Perform logout
-                self?.app.performLogout()
-            })
-            
-            tabBarController.present(alert, animated: true, completion: nil)
-            
-            return false // Don't actually switch to this tab
+            // Navigate to profile page when profile tab is selected
+            profileNavigator.route(URL(string: "\(App.baseURL)/settings/profile")!)
         }
         return true
     }

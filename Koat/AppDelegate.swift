@@ -60,7 +60,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             configuration.allowsPictureInPictureMediaPlayback = false
             
             // Configure preferences for better video performance
-            configuration.preferences.javaScriptEnabled = true
+            // JavaScript is enabled by default in WKWebView
             configuration.preferences.isFraudulentWebsiteWarningEnabled = false
             
             // Allow air play for videos
