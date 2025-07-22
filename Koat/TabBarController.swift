@@ -46,14 +46,14 @@ class TabBarController: UITabBarController {
             // Check which tab is selected and get the current URL from the appropriate navigator
             if selectedIndex == 0 {
                 // Treino tab
-                if let navController = self.treinoNavigator.rootViewController as? UINavigationController,
-                   let visitable = navController.visibleViewController as? VisitableViewController {
+                let navController = self.treinoNavigator.rootViewController
+                if let visitable = navController.visibleViewController as? VisitableViewController {
                     currentURL = visitable.currentVisitableURL
                 }
             } else if selectedIndex == 1 {
                 // Profile tab
-                if let navController = self.profileNavigator.rootViewController as? UINavigationController,
-                   let visitable = navController.visibleViewController as? VisitableViewController {
+                let navController = self.profileNavigator.rootViewController
+                if let visitable = navController.visibleViewController as? VisitableViewController {
                     currentURL = visitable.currentVisitableURL
                 }
             }
@@ -74,23 +74,29 @@ class TabBarController: UITabBarController {
         if shouldHideTabBar {
             tabBar.isHidden = true
             // Hide navigation bar for both navigators
-            if let navController = treinoNavigator.rootViewController as UINavigationController? {
-                navController.setNavigationBarHidden(true, animated: false)
-            }
-            if let navController = profileNavigator.rootViewController as UINavigationController? {
-                navController.setNavigationBarHidden(true, animated: false)
-            }
+            treinoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+            profileNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
         } else {
             tabBar.isHidden = false
             // Show navigation bar for both navigators
-            if let navController = treinoNavigator.rootViewController as UINavigationController? {
-                navController.setNavigationBarHidden(false, animated: false)
-                navController.navigationBar.prefersLargeTitles = false
-            }
-            if let navController = profileNavigator.rootViewController as UINavigationController? {
-                navController.setNavigationBarHidden(false, animated: false)
-                navController.navigationBar.prefersLargeTitles = false
-            }
+            treinoNavigator.rootViewController.setNavigationBarHidden(false, animated: false)
+            treinoNavigator.rootViewController.navigationBar.prefersLargeTitles = false
+            profileNavigator.rootViewController.setNavigationBarHidden(false, animated: false)
+            profileNavigator.rootViewController.navigationBar.prefersLargeTitles = false
+            
+            // Update selected tab based on current URL
+            updateSelectedTab(for: url)
+        }
+    }
+    
+    private func updateSelectedTab(for url: URL) {
+        // Determine which tab should be selected based on the URL path
+        if url.path.starts(with: "/settings/") {
+            // Profile-related pages should select profile tab
+            selectedIndex = 1
+        } else {
+            // All other pages (including home, workout plans, etc.) should select treino tab
+            selectedIndex = 0
         }
     }
     
@@ -115,13 +121,8 @@ class TabBarController: UITabBarController {
         profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 1)
         
         // Hide navigation bar initially (will be shown when user is authenticated)
-        if let navController = treinoTab as UINavigationController? {
-            navController.setNavigationBarHidden(true, animated: false)
-        }
-        
-        if let navController = profileTab as UINavigationController? {
-            navController.setNavigationBarHidden(true, animated: false)
-        }
+        treinoTab.setNavigationBarHidden(true, animated: false)
+        profileTab.setNavigationBarHidden(true, animated: false)
         
         // Set view controllers
         viewControllers = [treinoTab, profileTab]
@@ -140,6 +141,9 @@ class TabBarController: UITabBarController {
         
         // Set delegate to handle tab selection
         delegate = self
+        
+        // Start with treino tab selected
+        selectedIndex = 0
         
         // Don't navigate immediately - let the App handle initial navigation
         // treinoNavigator.route(URL(string: "\(App.baseURL)")!")
@@ -186,14 +190,14 @@ extension TabBarController: NavigatorDelegate {
             
             if selectedIndex == 0 {
                 // Treino tab
-                if let navController = self.treinoNavigator.rootViewController as? UINavigationController,
-                   let visitable = navController.visibleViewController as? VisitableViewController {
+                let navController = self.treinoNavigator.rootViewController
+                if let visitable = navController.visibleViewController as? VisitableViewController {
                     currentURL = visitable.currentVisitableURL
                 }
             } else if selectedIndex == 1 {
                 // Profile tab
-                if let navController = self.profileNavigator.rootViewController as? UINavigationController,
-                   let visitable = navController.visibleViewController as? VisitableViewController {
+                let navController = self.profileNavigator.rootViewController
+                if let visitable = navController.visibleViewController as? VisitableViewController {
                     currentURL = visitable.currentVisitableURL
                 }
             }
