@@ -37,6 +37,36 @@
       "properties": {
         "view_controller": "logout"
       }
+    },
+    {
+      "patterns": ["^/clients$"],
+      "properties": {
+        "view_controller": "clients",
+        "pull_to_refresh_enabled": true,
+        "presentation": "replace"
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+$"],
+      "properties": {
+        "pull_to_refresh_enabled": true,
+        "presentation": "push"
+      }
+    },
+    {
+      "patterns": ["^/exercises$"],
+      "properties": {
+        "view_controller": "exercises",
+        "pull_to_refresh_enabled": true,
+        "presentation": "replace"
+      }
+    },
+    {
+      "patterns": ["^/exercises/[0-9]+$"],
+      "properties": {
+        "pull_to_refresh_enabled": true,
+        "presentation": "push"
+      }
     }
   ]
 }

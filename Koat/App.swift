@@ -37,8 +37,7 @@ final class App {
     
     func start() {
         // Start navigation - the server will redirect to login if not authenticated
-        // The tab bar will remain hidden until we navigate to an authenticated page
-        tabBarController.treinoNavigator.route(URL(string: "\(App.baseURL)")!)
+        // Navigation will happen automatically through the tempNavigator in TabBarController
     }
     
     func verifySession() {
@@ -133,13 +132,24 @@ extension App: NavigatorDelegate {
                             }
                         }
                         
-                        // Clear the navigation stack
-                        if let navController = self?.tabBarController.treinoNavigator.rootViewController as? UINavigationController {
-                            navController.setViewControllers([], animated: false)
-                        }
+                        // Clear stored user role
+                        UserDefaults.standard.removeObject(forKey: "userRole")
+                        UserDefaults.standard.removeObject(forKey: "userId")
+                        UserDefaults.standard.removeObject(forKey: "userName")
+                        UserDefaults.standard.synchronize()
                         
-                        // Navigate to login page
-                        self?.tabBarController.treinoNavigator.route(URL(string: "\(App.baseURL)/session/new")!)
+                        // Reset tab bar controller
+                        self?.tabBarController.currentRole = nil
+                        
+                        // Hide tabs until new role is determined
+                        self?.tabBarController.tabBar.isHidden = true
+                        
+                        // Navigate to login page using temp navigator
+                        if let tempNav = self?.tabBarController.tempNavigator {
+                            tempNav.route(URL(string: "\(App.baseURL)/session/new")!)
+                        } else if let treinoNav = self?.tabBarController.treinoNavigator {
+                            treinoNav.route(URL(string: "\(App.baseURL)/session/new")!)
+                        }
                     }
                 }
             }.resume()

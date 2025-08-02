@@ -61,6 +61,11 @@ final class ButtonComponent: BridgeComponent {
     }
     
     private func performLogout() {
+        // Clear stored role first
+        UserDefaults.standard.removeObject(forKey: "userRole")
+        UserDefaults.standard.removeObject(forKey: "userId")
+        UserDefaults.standard.removeObject(forKey: "userName")
+        
         // Clear cookies and session
         let dataStore = WKWebsiteDataStore.default()
         dataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),

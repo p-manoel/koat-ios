@@ -67,11 +67,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             configuration.allowsAirPlayForMediaPlayback = true
             
             let webView = WKWebView(frame: CGRect.zero, configuration: configuration)
+            
+            #if DEBUG
+            // Enable web inspector for debugging
+            if webView.responds(to: Selector(("isInspectable"))) {
+                webView.perform(Selector(("setInspectable:")), with: true)
+            }
+            #endif
+            
             return webView
         }
         
         // Register bridge components
-        Hotwire.registerBridgeComponents([ButtonComponent.self])
+        Hotwire.registerBridgeComponents([
+            ButtonComponent.self,
+            RoleComponent.self
+        ])
         
         // Load path configuration
         loadPathConfiguration()
