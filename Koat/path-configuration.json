@@ -67,6 +67,23 @@
         "pull_to_refresh_enabled": true,
         "presentation": "push"
       }
+    },
+    {
+      "patterns": [
+        "^/exercises/new$",
+        "^/exercises/[0-9]+/edit$",
+        "^/clients/new$",
+        "^/clients/[0-9]+/edit$",
+        "^/workout_plans/new$",
+        "^/workout_plans/[0-9]+/edit$",
+        "^/routines/new$",
+        "^/routines/[0-9]+/edit$",
+        "^/settings/profile/edit$"
+      ],
+      "properties": {
+        "context": "modal",
+        "pull_to_refresh_enabled": false
+      }
     }
   ]
 }

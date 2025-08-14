@@ -436,34 +436,52 @@ extension TabBarController: NavigatorDelegate {
         // Update tab bar visibility based on the URL
         updateTabBarVisibility(for: proposal.url)
         
+        // Check if context is modal (standard Hotwire Native approach)
+        if let context = proposal.properties["context"] as? String,
+           context == "modal" {
+            // Accept the proposal - Hotwire Native will handle modal presentation automatically
+            return .accept
+        }
+        
         // Handle presentation types from path configuration
-        if let presentation = proposal.properties["presentation"] as? String,
-           presentation == "replace" {
-            // Clear the back stack after navigation for the appropriate navigator
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
+        if let presentation = proposal.properties["presentation"] as? String {
+            switch presentation {
+            case "modal":
+                // Accept the proposal - let Hotwire Native handle it
+                // The Navigator will automatically present as modal when context is "modal"
+                return .accept
                 
-                // Determine which navigator to clear based on the URL and role
-                var navigator: Navigator?
-                
-                if self.currentRole == "client" {
-                    navigator = proposal.url.path.starts(with: "/settings/") ? self.profileNavigator : self.treinoNavigator
-                } else if self.currentRole == "coach" {
-                    if proposal.url.path.starts(with: "/clients") {
-                        navigator = self.clientsNavigator
-                    } else if proposal.url.path.starts(with: "/exercises") {
-                        navigator = self.exercisesNavigator
-                    } else if proposal.url.path.starts(with: "/settings/") {
-                        navigator = self.coachProfileNavigator
+            case "replace":
+                // Clear the back stack after navigation for the appropriate navigator
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    
+                    // Determine which navigator to clear based on the URL and role
+                    var navigator: Navigator?
+                    
+                    if self.currentRole == "client" {
+                        navigator = proposal.url.path.starts(with: "/settings/") ? self.profileNavigator : self.treinoNavigator
+                    } else if self.currentRole == "coach" {
+                        if proposal.url.path.starts(with: "/clients") {
+                            navigator = self.clientsNavigator
+                        } else if proposal.url.path.starts(with: "/exercises") {
+                            navigator = self.exercisesNavigator
+                        } else if proposal.url.path.starts(with: "/settings/") {
+                            navigator = self.coachProfileNavigator
+                        }
+                    }
+                    
+                    if let navController = navigator?.rootViewController as? UINavigationController,
+                       navController.viewControllers.count > 1 {
+                        if let lastVC = navController.viewControllers.last {
+                            navController.setViewControllers([lastVC], animated: false)
+                        }
                     }
                 }
+                return .accept
                 
-                if let navController = navigator?.rootViewController as? UINavigationController,
-                   navController.viewControllers.count > 1 {
-                    if let lastVC = navController.viewControllers.last {
-                        navController.setViewControllers([lastVC], animated: false)
-                    }
-                }
+            default:
+                return .accept
             }
         }
         
