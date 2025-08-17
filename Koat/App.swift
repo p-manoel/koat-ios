@@ -85,6 +85,13 @@ final class App {
         // Configure navigation bar appearance
         UINavigationBar.appearance().prefersLargeTitles = false
         UINavigationBar.appearance().tintColor = .systemBlue
+        
+        // Register bridge components
+        Hotwire.registerBridgeComponents([
+            ButtonComponent.self,
+            RoleComponent.self,
+            AppleSignInComponent.self
+        ])
     }
 }
 

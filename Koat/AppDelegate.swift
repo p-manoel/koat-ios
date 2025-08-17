@@ -81,7 +81,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Register bridge components
         Hotwire.registerBridgeComponents([
             ButtonComponent.self,
-            RoleComponent.self
+            RoleComponent.self,
+            AppleSignInComponent.self
         ])
         
         // Load path configuration
