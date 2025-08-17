@@ -95,10 +95,10 @@ class AppleSignInManager: NSObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        // Email is NOT sent - it must be extracted from the verified JWT token server-side
         let parameters: [String: Any?] = [
             "user_id": userId,
             "identity_token": identityTokenString,
-            "email": email,
             "given_name": givenName,
             "family_name": familyName
         ]
