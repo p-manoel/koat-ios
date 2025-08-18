@@ -30,13 +30,15 @@ final class AppleSignInComponent: BridgeComponent {
         AppleSignInManager.shared.signIn(from: viewController) { [weak self] success, error in
             if success {
                 // Reply to the web component that sign in was successful
-                self?.reply(to: "signInComplete", with: ["success": true])
+                let successData: [String: Any] = ["success": true]
+                self?.reply(to: "signInComplete", with: successData)
             } else {
                 // Reply with error
-                self?.reply(to: "signInComplete", with: [
+                let errorData: [String: Any] = [
                     "success": false,
                     "error": error ?? "Unknown error"
-                ])
+                ]
+                self?.reply(to: "signInComplete", with: errorData)
             }
         }
     }
