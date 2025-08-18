@@ -24,11 +24,6 @@ final class AppleSignInComponent: BridgeComponent {
         }
     }
     
-    // Also handle direct JavaScript postMessage calls
-    override func onConnect() {
-        // Listen for postMessage events
-    }
-    
     private func performAppleSignIn() {
         guard let delegate = delegate,
               let viewController = delegate.destination as? UIViewController else { return }
