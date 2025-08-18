@@ -12,15 +12,21 @@ import AuthenticationServices
 final class AppleSignInComponent: BridgeComponent {
     override class var name: String { "apple-sign-in" }
     
+    struct MessageData: Codable {
+        let success: Bool
+        let error: String?
+    }
+    
     override func onReceive(message: Message) {
-        let action = message.event // event is not optional in Message
-        
-        switch action {
-        case "perform":
+        // Handle messages from JavaScript
+        if message.event == "perform" {
             performAppleSignIn()
-        default:
-            print("Unknown Apple Sign-In action: \(action)")
         }
+    }
+    
+    // Also handle direct JavaScript postMessage calls
+    override func onConnect() {
+        // Listen for postMessage events
     }
     
     private func performAppleSignIn() {
@@ -28,18 +34,11 @@ final class AppleSignInComponent: BridgeComponent {
               let viewController = delegate.destination as? UIViewController else { return }
         
         AppleSignInManager.shared.signIn(from: viewController) { [weak self] success, error in
-            if success {
-                // Reply to the web component that sign in was successful
-                let successData: [String: Any] = ["success": true]
-                self?.reply(to: "signInComplete", with: successData)
-            } else {
-                // Reply with error
-                let errorData: [String: Any] = [
-                    "success": false,
-                    "error": error ?? "Unknown error"
-                ]
-                self?.reply(to: "signInComplete", with: errorData)
-            }
+            let messageData = MessageData(
+                success: success,
+                error: success ? nil : (error ?? "Unknown error")
+            )
+            self?.reply(to: "signInComplete", with: messageData)
         }
     }
 }
