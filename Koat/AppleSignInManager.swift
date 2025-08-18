@@ -169,8 +169,8 @@ class AppleSignInManager: NSObject {
     
     private func navigateToRoleSelection() {
         // Navigate to role selection page
-        if let tabBarController = App.shared.tabBarController,
-           let tempNav = tabBarController.tempNavigator {
+        let tabBarController = App.shared.tabBarController
+        if let tempNav = tabBarController.tempNavigator {
             tempNav.route(URL(string: "\(App.baseURL)/role_selection/new")!)
             completion?(true, nil)
         } else {

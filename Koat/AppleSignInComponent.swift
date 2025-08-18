@@ -13,7 +13,7 @@ final class AppleSignInComponent: BridgeComponent {
     override class var name: String { "apple-sign-in" }
     
     override func onReceive(message: Message) {
-        guard let action = message.event else { return }
+        let action = message.event // event is not optional in Message
         
         switch action {
         case "perform":
@@ -24,7 +24,8 @@ final class AppleSignInComponent: BridgeComponent {
     }
     
     private func performAppleSignIn() {
-        guard let viewController = delegate.destination as? UIViewController else { return }
+        guard let delegate = delegate,
+              let viewController = delegate.destination as? UIViewController else { return }
         
         AppleSignInManager.shared.signIn(from: viewController) { [weak self] success, error in
             if success {
