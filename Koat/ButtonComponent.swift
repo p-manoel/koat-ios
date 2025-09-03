@@ -61,19 +61,11 @@ final class ButtonComponent: BridgeComponent {
     }
     
     private func performLogout() {
-        // Clear stored role first
-        UserDefaults.standard.removeObject(forKey: "userRole")
-        UserDefaults.standard.removeObject(forKey: "userId")
-        UserDefaults.standard.removeObject(forKey: "userName")
+        // Call the App's performLogout method which handles everything properly
+        App.shared.performLogout()
         
-        // Clear cookies and session
-        let dataStore = WKWebsiteDataStore.default()
-        dataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
-                           modifiedSince: Date(timeIntervalSince1970: 0)) { [weak self] in
-            // Navigate to login
-            self?.reply(to: "logout")
-            App.shared.navigator.route(URL(string: "\(App.baseURL)/session/new")!)
-        }
+        // Reply to the web component
+        reply(to: "logout")
     }
 }
 

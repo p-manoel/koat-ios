@@ -12,12 +12,17 @@ final class RoleComponent: BridgeComponent {
     override class var name: String { "role" }
     
     override func onReceive(message: Message) {
+        print("[RoleComponent] Received message event: \(message.event)")
+        
         if message.event == "connect" {
             guard let data: MessageData = message.data() else {
+                print("[RoleComponent] Failed to parse message data")
                 return
             }
+            print("[RoleComponent] Parsed role data: role=\(data.role), userId=\(data.userId), userName=\(data.userName)")
             handleRoleUpdate(data: data)
         } else if message.event == "disconnect" {
+            print("[RoleComponent] Handling disconnect")
             handleRoleDisconnect()
         }
     }
@@ -36,11 +41,8 @@ final class RoleComponent: BridgeComponent {
             userInfo: ["role": data.role]
         )
         
-        // Update tab bar configuration
-        let tabBarController = App.shared.tabBarController
-        DispatchQueue.main.async {
-            tabBarController.updateForRole(data.role)
-        }
+        // The App class will handle role detection and tab switching
+        // through the NavigatorDelegate methods
         
         reply(to: "connect")
     }

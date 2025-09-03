@@ -40,76 +40,64 @@ class TabBarController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Hide tab bar initially until we know the user is authenticated
+        // Tab bar will be configured when setupForRole is called
         tabBar.isHidden = true
-        
-        // Create a temporary navigator for the initial load
-        let startURL = URL(string: "\(App.baseURL)")!
-        tempNavigator = Navigator(configuration: .init(name: "temp", startLocation: startURL))
-        tempNavigator.delegate = self
-        
-        // Show the temporary navigator until we get role information
-        viewControllers = [tempNavigator.rootViewController]
-        
-        // Start navigation
-        tempNavigator.route(startURL)
-        
-        
-        // Start checking for role information
-        startCheckingForRole()
     }
     
-    private func startCheckingForRole() {
-        var attempts = 0
-        let maxAttempts = 20 // 10 seconds total
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         
+        // Start monitoring navigation
+        startNavigationMonitoring()
+    }
+    
+    private func startNavigationMonitoring() {
+        // Monitor navigation changes every 0.5 seconds
         Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
             guard let self = self else {
                 timer.invalidate()
                 return
             }
             
-            attempts += 1
+            // Check if we're still the root view controller
+            if self.app.sceneDelegate?.window?.rootViewController !== self {
+                timer.invalidate()
+                return
+            }
             
-            // Try to get role from the page via the navigator's web view
-            if let navController = self.tempNavigator?.rootViewController,
-               let visitable = navController.visibleViewController as? VisitableViewController,
-               let webView = visitable.visitableView.webView {
-                
-                webView.evaluateJavaScript("""
-                    (function() {
-                        // First check for meta tag
-                        var roleMeta = document.querySelector('meta[name="user-role"]');
-                        if (roleMeta && roleMeta.content) {
-                            return { role: roleMeta.content, source: 'meta' };
-                        }
-                        
-                        // Check for bridge role element
-                        var roleElement = document.querySelector('[data-controller="bridge--role"]');
-                        if (roleElement) {
-                            var role = roleElement.getAttribute('data-role');
-                            if (role) {
-                                return { role: role, source: 'bridge' };
-                            }
-                        }
-                        
-                        return null;
-                    })()
-                """) { [weak self] result, error in
-                    if let dict = result as? [String: String],
-                       let role = dict["role"],
-                       let _ = dict["source"] {
-                        timer.invalidate()
-                        self?.updateForRole(role)
-                    }
+            // Check current URL of active navigator
+            if let visitable = self.getCurrentVisitable() {
+                let currentPath = visitable.currentVisitableURL.path
+                if currentPath == "/session/new" {
+                    timer.invalidate()
+                    App.shared.performLogout()
                 }
             }
-            
-            // Fallback after max attempts
-            if attempts >= maxAttempts && self.currentRole == nil {
-                timer.invalidate()
-            }
         }
+    }
+    
+    func setupForRole(_ role: String, with navigator: Navigator) {
+        self.currentRole = role
+        
+        // Store the role
+        UserDefaults.standard.set(role, forKey: "userRole")
+        
+        // Set up tabs based on role
+        switch role {
+        case "coach":
+            setupCoachTabs(with: navigator)
+        case "client":
+            setupClientTabs(with: navigator)
+        default:
+            return
+        }
+        
+        // Show the tab bar
+        tabBar.isHidden = false
     }
     
     private func startMonitoringNavigation() {
@@ -261,88 +249,91 @@ class TabBarController: UITabBarController {
         }
     }
     
-    func updateForRole(_ role: String) {
-        
-        // Always update the role, even if it seems the same
-        // This ensures proper setup after logout/login
-        
-        currentRole = role
-        
-        // Store the new role
-        UserDefaults.standard.set(role, forKey: "userRole")
-        
-        // Clear existing timer if switching roles
-        if let timer = navigationTimer {
-            timer.invalidate()
-            navigationTimer = nil
-        }
-        
-        // Clear existing navigators to ensure fresh state
-        treinoNavigator = nil
-        profileNavigator = nil
-        clientsNavigator = nil
-        exercisesNavigator = nil
-        coachProfileNavigator = nil
-        
-        // Reconfigure tabs based on role
-        switch role {
-        case "coach":
-            setupCoachTabs()
-        case "client":
-            setupClientTabs()
-        default:
-            tabBar.isHidden = true
-            return
-        }
-        
-        // Restart navigation monitoring
-        startMonitoringNavigation()
-        
-        // Navigate to the appropriate home page based on role
-        let urlToRoute: URL
-        if role == "coach" {
-            // Coaches should go to clients page
-            urlToRoute = URL(string: "\(App.baseURL)/clients")!
-        } else {
-            // Clients go to home
-            urlToRoute = URL(string: "\(App.baseURL)")!
-        }
-        
-        
-        // Navigate based on role
-        if role == "client" {
-            treinoNavigator?.route(urlToRoute)
-        } else if role == "coach" {
-            clientsNavigator?.route(urlToRoute)
-        }
-    }
     
-    private func setupClientTabs() {
-        // Keep existing setupTabs logic for clients
-        setupTabs()
-    }
-    
-    private func setupCoachTabs() {
-        // Create navigator for clients tab
-        let startURL = URL(string: "\(App.baseURL)")!
-        clientsNavigator = Navigator(configuration: .init(name: "clients", startLocation: startURL))
-        clientsNavigator.delegate = self
+    private func setupClientTabs(with navigator: Navigator) {
         
-        // Create navigator for exercises tab
-        exercisesNavigator = Navigator(configuration: .init(name: "exercises", startLocation: startURL))
-        exercisesNavigator.delegate = self
+        // Create new navigators for each tab
+        let treinoURL = URL(string: "\(App.baseURL)")!
+        let profileURL = URL(string: "\(App.baseURL)/settings/profile")!
+        
+        // Create navigator for treino tab
+        treinoNavigator = Navigator(configuration: .init(name: "treino", startLocation: treinoURL))
+        treinoNavigator.delegate = self
         
         // Create navigator for profile tab
-        coachProfileNavigator = Navigator(configuration: .init(name: "profile", startLocation: startURL))
-        coachProfileNavigator.delegate = self
+        profileNavigator = Navigator(configuration: .init(name: "profile", startLocation: profileURL))
+        profileNavigator.delegate = self
         
         // Set initial URL
-        currentURL = startURL
+        currentURL = treinoURL
         
         // Configure tab bar items
+        let treinoTab = treinoNavigator.rootViewController
+        treinoTab.tabBarItem = UITabBarItem(title: "Treino", image: UIImage(systemName: "dumbbell"), tag: 0)
+        
+        let profileTab = profileNavigator.rootViewController
+        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 1)
+        
+        // Hide navigation bar initially
+        treinoTab.setNavigationBarHidden(true, animated: false)
+        profileTab.setNavigationBarHidden(true, animated: false)
+        
+        // Set view controllers
+        viewControllers = [treinoTab, profileTab]
+        
+        // Configure tab bar appearance
+        tabBar.tintColor = UIColor.systemBlue
+        tabBar.unselectedItemTintColor = UIColor.systemGray
+        
+        // Fix tab bar background
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+        tabBarAppearance.backgroundColor = UIColor.systemBackground
+        
+        tabBar.standardAppearance = tabBarAppearance
+        tabBar.scrollEdgeAppearance = tabBarAppearance
+        
+        // Set delegate to handle tab selection
+        delegate = self
+        
+        // Start with treino tab selected
+        selectedIndex = 0
+        
+        // Make tab bar visible now that tabs are configured
+        tabBar.isHidden = false
+        
+        // Navigate to the initial URLs for each navigator
+        treinoNavigator.route(treinoURL)
+        profileNavigator.route(profileURL)
+    }
+    
+    private func setupCoachTabs(with navigator: Navigator) {
+        
+        // Create new navigators for each tab
+        let clientsURL = URL(string: "\(App.baseURL)/clients")!
+        let exercisesURL = URL(string: "\(App.baseURL)/exercises")!
+        let profileURL = URL(string: "\(App.baseURL)/settings/profile")!
+        
+        // Create navigator for clients tab
+        clientsNavigator = Navigator(configuration: .init(name: "clients", startLocation: clientsURL))
+        clientsNavigator.delegate = self
         let clientsTab = clientsNavigator.rootViewController
         clientsTab.tabBarItem = UITabBarItem(title: "Clientes", image: UIImage(systemName: "person.2"), tag: 0)
         
+        // Create navigator for exercises tab
+        exercisesNavigator = Navigator(configuration: .init(name: "exercises", startLocation: exercisesURL))
+        exercisesNavigator.delegate = self
+        
+        // Create navigator for profile tab
+        coachProfileNavigator = Navigator(configuration: .init(name: "profile", startLocation: profileURL))
+        coachProfileNavigator.delegate = self
+        
+        // Set TabBarController as delegate for ALL navigator instances to catch logout
+        
+        // Set initial URL
+        currentURL = clientsURL
+        
+        // Configure tab bar items
         let exercisesTab = exercisesNavigator.rootViewController
         exercisesTab.tabBarItem = UITabBarItem(title: "Exercícios", image: UIImage(systemName: "figure.strengthtraining.traditional"), tag: 1)
         
@@ -374,55 +365,20 @@ class TabBarController: UITabBarController {
         
         // Start with clients tab selected
         selectedIndex = 0
+        
+        // Make tab bar visible now that tabs are configured
+        tabBar.isHidden = false
+        
+        // Navigate to the initial URLs for each navigator
+        clientsNavigator.route(clientsURL)
+        exercisesNavigator.route(exercisesURL)
+        coachProfileNavigator.route(profileURL)
     }
     
-    func setupTabs() {
-        // Create navigator for treino tab
-        let startURL = URL(string: "\(App.baseURL)")!
-        treinoNavigator = Navigator(configuration: .init(name: "treino", startLocation: startURL))
-        treinoNavigator.delegate = self
-        
-        // Create navigator for profile tab - start with same URL as treino
-        profileNavigator = Navigator(configuration: .init(name: "profile", startLocation: startURL))
-        profileNavigator.delegate = self
-        
-        // Set initial URL
-        currentURL = startURL
-        
-        // Configure tab bar items
-        let treinoTab = treinoNavigator.rootViewController
-        treinoTab.tabBarItem = UITabBarItem(title: "Treino", image: UIImage(systemName: "dumbbell"), tag: 0)
-        
-        let profileTab = profileNavigator.rootViewController
-        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 1)
-        
-        // Hide navigation bar initially (will be shown when user is authenticated)
-        treinoTab.setNavigationBarHidden(true, animated: false)
-        profileTab.setNavigationBarHidden(true, animated: false)
-        
-        // Set view controllers
-        viewControllers = [treinoTab, profileTab]
-        
-        // Configure tab bar appearance
-        tabBar.tintColor = UIColor.systemBlue
-        tabBar.unselectedItemTintColor = UIColor.systemGray
-        
-        // Fix tab bar background
-        let tabBarAppearance = UITabBarAppearance()
-        tabBarAppearance.configureWithOpaqueBackground()
-        tabBarAppearance.backgroundColor = UIColor.systemBackground
-        
-        tabBar.standardAppearance = tabBarAppearance
-        tabBar.scrollEdgeAppearance = tabBarAppearance
-        
-        // Set delegate to handle tab selection
-        delegate = self
-        
-        // Start with treino tab selected
-        selectedIndex = 0
-        
-        // Don't navigate immediately - let the App handle initial navigation
-        // treinoNavigator.route(URL(string: "\(App.baseURL)")!")
+    // This method is no longer needed since setupClientTabs handles everything
+    // Keeping it for backwards compatibility if needed
+    func setupTabs(with navigator: Navigator) {
+        setupClientTabs(with: navigator)
     }
 }
 
@@ -430,6 +386,19 @@ class TabBarController: UITabBarController {
 
 extension TabBarController: NavigatorDelegate {
     func handle(proposal: VisitProposal) -> ProposalResult {
+        // Check if navigating to login page - if so, trigger logout
+        if proposal.url.path == "/session/new" || proposal.url.path.starts(with: "/registration") {
+            // Immediately hide the tab bar and clear state
+            self.tabBar.isHidden = true
+            self.currentRole = nil
+            self.viewControllers = []
+            
+            // Call App's performLogout to properly clean up and switch back to single navigator
+            App.shared.performLogout()
+            // Reject this proposal since performLogout will handle the navigation properly
+            return .reject
+        }
+        
         // Store current URL
         currentURL = proposal.url
         
@@ -489,7 +458,51 @@ extension TabBarController: NavigatorDelegate {
         return .accept
     }
     
+    
+    private func getCurrentVisitable() -> VisitableViewController? {
+        var navigator: Navigator?
+        
+        if currentRole == "client" {
+            if selectedIndex == 0 {
+                navigator = treinoNavigator
+            } else if selectedIndex == 1 {
+                navigator = profileNavigator
+            }
+        } else if currentRole == "coach" {
+            if selectedIndex == 0 {
+                navigator = clientsNavigator
+            } else if selectedIndex == 1 {
+                navigator = exercisesNavigator
+            } else if selectedIndex == 2 {
+                navigator = coachProfileNavigator
+            }
+        }
+        
+        return navigator?.rootViewController.visibleViewController as? VisitableViewController
+    }
+    
+    func navigatorDidFinishNavigation(_ navigator: Navigator) {
+        // Check if we've navigated to login page
+        if let visitable = getCurrentVisitable(),
+           visitable.currentVisitableURL.path == "/session/new" {
+            // Trigger logout
+            DispatchQueue.main.async {
+                App.shared.performLogout()
+            }
+            return
+        }
+    }
+    
     func visitableDidRender() {
+        // Check if we've navigated to login page
+        if let visitable = getCurrentVisitable() {
+            if visitable.currentVisitableURL.path == "/session/new" {
+                // Trigger logout immediately
+                App.shared.performLogout()
+                return
+            }
+        }
+        
         // Check current URL after render for the active navigator
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -541,6 +554,7 @@ extension TabBarController: NavigatorDelegate {
             self.updateNavigationBarVisibility()
         }
     }
+    
 }
 
 // MARK: - UITabBarControllerDelegate
