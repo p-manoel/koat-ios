@@ -38,8 +38,8 @@ final class App {
     }
     
     func start() {
-        // Hide navigation bar initially (especially for login page)
-        navigator.rootViewController.setNavigationBarHidden(true, animated: false)
+        // Navigation bar visibility is now handled by AppWebViewController
+        // based on path configuration
         
         // Start navigation - the server will redirect to login if not authenticated
         navigator.route(rootURL)
@@ -287,8 +287,7 @@ extension App {
         navigator = Navigator(configuration: config)
         navigator.delegate = self
         
-        // Hide navigation bar for login page
-        navigator.rootViewController.setNavigationBarHidden(true, animated: false)
+        // Navigation bar visibility is handled by AppWebViewController
         
         // Switch back to navigator as root
         sceneDelegate?.window?.rootViewController = navigator.rootViewController

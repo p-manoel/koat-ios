@@ -163,15 +163,14 @@ class TabBarController: UITabBarController {
             hideAllNavigationBars()
         } else {
             tabBar.isHidden = false
-            // Update navigation bar visibility based on navigation depth
-            updateNavigationBarVisibility()
-            
             // Update selected tab based on current URL
             updateSelectedTab(for: url)
         }
     }
     
     private func hideAllNavigationBars() {
+        // This method is called when on authentication pages
+        // We should actually hide the navigation bars in this case
         if currentRole == "client" {
             treinoNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
             profileNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
@@ -198,32 +197,6 @@ class TabBarController: UITabBarController {
         }
     }
     
-    private func updateNavigationBarVisibility() {
-        if currentRole == "client" {
-            // Hide nav bar if at root of navigator (only one view controller in stack)
-            if let nav = treinoNavigator?.rootViewController {
-                nav.setNavigationBarHidden(nav.viewControllers.count <= 1, animated: false)
-                nav.navigationBar.prefersLargeTitles = false
-            }
-            if let nav = profileNavigator?.rootViewController {
-                nav.setNavigationBarHidden(nav.viewControllers.count <= 1, animated: false)
-                nav.navigationBar.prefersLargeTitles = false
-            }
-        } else if currentRole == "coach" {
-            if let nav = clientsNavigator?.rootViewController {
-                nav.setNavigationBarHidden(nav.viewControllers.count <= 1, animated: false)
-                nav.navigationBar.prefersLargeTitles = false
-            }
-            if let nav = exercisesNavigator?.rootViewController {
-                nav.setNavigationBarHidden(nav.viewControllers.count <= 1, animated: false)
-                nav.navigationBar.prefersLargeTitles = false
-            }
-            if let nav = coachProfileNavigator?.rootViewController {
-                nav.setNavigationBarHidden(nav.viewControllers.count <= 1, animated: false)
-                nav.navigationBar.prefersLargeTitles = false
-            }
-        }
-    }
     
     private func updateSelectedTab(for url: URL) {
         // Determine which tab should be selected based on the URL path
@@ -274,9 +247,8 @@ class TabBarController: UITabBarController {
         let profileTab = profileNavigator.rootViewController
         profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 1)
         
-        // Hide navigation bar initially
-        treinoTab.setNavigationBarHidden(true, animated: false)
-        profileTab.setNavigationBarHidden(true, animated: false)
+        // Don't hide navigation bar - let Hotwire Native handle it based on navigation depth
+        // The navigation bar will be shown/hidden automatically when pushing/popping views
         
         // Set view controllers
         viewControllers = [treinoTab, profileTab]
@@ -340,10 +312,8 @@ class TabBarController: UITabBarController {
         let profileTab = coachProfileNavigator.rootViewController
         profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 2)
         
-        // Hide navigation bar initially
-        clientsTab.setNavigationBarHidden(true, animated: false)
-        exercisesTab.setNavigationBarHidden(true, animated: false)
-        profileTab.setNavigationBarHidden(true, animated: false)
+        // Don't hide navigation bar - let Hotwire Native handle it based on navigation depth
+        // The navigation bar will be shown/hidden automatically when pushing/popping views
         
         // Set view controllers
         viewControllers = [clientsTab, exercisesTab, profileTab]
@@ -420,6 +390,9 @@ extension TabBarController: NavigatorDelegate {
                 // The Navigator will automatically present as modal when context is "modal"
                 return .accept
                 
+            case "push":
+                return .accept
+                
             case "replace":
                 // Clear the back stack after navigation for the appropriate navigator
                 DispatchQueue.main.async { [weak self] in
@@ -491,6 +464,8 @@ extension TabBarController: NavigatorDelegate {
             }
             return
         }
+        
+        // Navigation bar visibility is now handled by AppWebViewController
     }
     
     func visitableDidRender() {
@@ -546,12 +521,9 @@ extension TabBarController: NavigatorDelegate {
             }
             
             if let url = currentURL {
-                self.updateTabBarVisibility(for: url)
                 self.currentURL = url
+                self.updateTabBarVisibility(for: url)
             }
-            
-            // Always update navigation bar visibility after render
-            self.updateNavigationBarVisibility()
         }
     }
     

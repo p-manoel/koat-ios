@@ -27,6 +27,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Show done button on modals (for login dismissal)
         Hotwire.config.showDoneButtonOnModals = true
         
+        // Use custom WebViewController class for navigation bar handling
+        Hotwire.config.defaultViewController = { url in
+            return AppWebViewController(url: url)
+        }
+        
         // Configure navigation bar appearance
         let appearance = UINavigationBarAppearance()
         appearance.configureWithDefaultBackground()
@@ -92,7 +97,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let localConfigURL = Bundle.main.url(forResource: "path-configuration", withExtension: "json")!
         let remoteConfigURL = URL(string: "\(App.baseURL)/hotwire/native/v1/ios/path_configuration")!
         
-        // Load with fallback
+        // Load with fallback - local file first, then server
         Hotwire.loadPathConfiguration(from: [
             .file(localConfigURL),
             .server(remoteConfigURL)

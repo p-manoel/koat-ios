@@ -8,28 +8,40 @@
       "properties": {
         "view_controller": "treino",
         "pull_to_refresh_enabled": true,
-        "presentation": "replace"
+        "presentation": "replace",
+        "navigation_bar_hidden": true
       }
     },
     {
       "patterns": ["^/workout_plans/[0-9]+$"],
       "properties": {
         "pull_to_refresh_enabled": true,
-        "presentation": "push"
+        "presentation": "push",
+        "navigation_bar_hidden": true
       }
     },
     {
       "patterns": ["^/workout_plans/[0-9]+/routines/[0-9]+$"],
       "properties": {
         "pull_to_refresh_enabled": true,
-        "presentation": "push"
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/workout_plans/[0-9]+/routines/[0-9]+/routine_exercises/[0-9]+$"],
+      "properties": {
+        "pull_to_refresh_enabled": true,
+        "presentation": "push",
+        "navigation_bar_hidden": false
       }
     },
     {
       "patterns": ["^/session/new$"],
       "properties": {
         "pull_to_refresh_enabled": false,
-        "presentation": "replace"
+        "presentation": "replace",
+        "navigation_bar_hidden": true
       }
     },
     {
@@ -43,7 +55,8 @@
       "properties": {
         "view_controller": "clients",
         "pull_to_refresh_enabled": true,
-        "presentation": "replace"
+        "presentation": "replace",
+        "navigation_bar_hidden": true
       }
     },
     {
@@ -58,7 +71,8 @@
       "properties": {
         "view_controller": "exercises",
         "pull_to_refresh_enabled": true,
-        "presentation": "replace"
+        "presentation": "replace",
+        "navigation_bar_hidden": true
       }
     },
     {
@@ -66,6 +80,14 @@
       "properties": {
         "pull_to_refresh_enabled": true,
         "presentation": "push"
+      }
+    },
+    {
+      "patterns": ["^/settings/profile$"],
+      "properties": {
+        "pull_to_refresh_enabled": true,
+        "presentation": "replace",
+        "navigation_bar_hidden": true
       }
     },
     {
