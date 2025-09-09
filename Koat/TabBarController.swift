@@ -18,6 +18,7 @@ class TabBarController: UITabBarController {
     
     // Client navigators
     var treinoNavigator: Navigator!
+    var dietaNavigator: Navigator!
     var profileNavigator: Navigator!
     
     // Coach navigators
@@ -116,6 +117,12 @@ class TabBarController: UITabBarController {
                         currentURL = visitable.currentVisitableURL
                     }
                 } else if selectedIndex == 1 {
+                    // Dieta tab
+                    let navController = self.dietaNavigator.rootViewController
+                    if let visitable = navController.visibleViewController as? VisitableViewController {
+                        currentURL = visitable.currentVisitableURL
+                    }
+                } else if selectedIndex == 2 {
                     // Profile tab
                     let navController = self.profileNavigator.rootViewController
                     if let visitable = navController.visibleViewController as? VisitableViewController {
@@ -173,6 +180,7 @@ class TabBarController: UITabBarController {
         // We should actually hide the navigation bars in this case
         if currentRole == "client" {
             treinoNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
+            dietaNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
             profileNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
         } else if currentRole == "coach" {
             clientsNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
@@ -185,6 +193,8 @@ class TabBarController: UITabBarController {
         if currentRole == "client" {
             treinoNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
             treinoNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
+            dietaNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
+            dietaNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
             profileNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
             profileNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
         } else if currentRole == "coach" {
@@ -201,9 +211,12 @@ class TabBarController: UITabBarController {
     private func updateSelectedTab(for url: URL) {
         // Determine which tab should be selected based on the URL path
         if currentRole == "client" {
-            if url.path.starts(with: "/settings/") {
-                // Profile-related pages should select profile tab
+            if url.path.starts(with: "/meal_plans") {
+                // Meal plan pages should select dieta tab
                 selectedIndex = 1
+            } else if url.path.starts(with: "/settings/") {
+                // Profile-related pages should select profile tab
+                selectedIndex = 2
             } else {
                 // All other pages (including home, workout plans, etc.) should select treino tab
                 selectedIndex = 0
@@ -227,11 +240,16 @@ class TabBarController: UITabBarController {
         
         // Create new navigators for each tab
         let treinoURL = URL(string: "\(App.baseURL)")!
+        let dietaURL = URL(string: "\(App.baseURL)/meal_plans")!
         let profileURL = URL(string: "\(App.baseURL)/settings/profile")!
         
         // Create navigator for treino tab
         treinoNavigator = Navigator(configuration: .init(name: "treino", startLocation: treinoURL))
         treinoNavigator.delegate = self
+        
+        // Create navigator for dieta tab
+        dietaNavigator = Navigator(configuration: .init(name: "dieta", startLocation: dietaURL))
+        dietaNavigator.delegate = self
         
         // Create navigator for profile tab
         profileNavigator = Navigator(configuration: .init(name: "profile", startLocation: profileURL))
@@ -244,14 +262,17 @@ class TabBarController: UITabBarController {
         let treinoTab = treinoNavigator.rootViewController
         treinoTab.tabBarItem = UITabBarItem(title: "Treino", image: UIImage(systemName: "dumbbell"), tag: 0)
         
+        let dietaTab = dietaNavigator.rootViewController
+        dietaTab.tabBarItem = UITabBarItem(title: "Dieta", image: UIImage(systemName: "fork.knife"), tag: 1)
+        
         let profileTab = profileNavigator.rootViewController
-        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 1)
+        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 2)
         
         // Don't hide navigation bar - let Hotwire Native handle it based on navigation depth
         // The navigation bar will be shown/hidden automatically when pushing/popping views
         
         // Set view controllers
-        viewControllers = [treinoTab, profileTab]
+        viewControllers = [treinoTab, dietaTab, profileTab]
         
         // Configure tab bar appearance
         tabBar.tintColor = UIColor.systemBlue
@@ -276,6 +297,7 @@ class TabBarController: UITabBarController {
         
         // Navigate to the initial URLs for each navigator
         treinoNavigator.route(treinoURL)
+        dietaNavigator.route(dietaURL)
         profileNavigator.route(profileURL)
     }
     
@@ -402,7 +424,13 @@ extension TabBarController: NavigatorDelegate {
                     var navigator: Navigator?
                     
                     if self.currentRole == "client" {
-                        navigator = proposal.url.path.starts(with: "/settings/") ? self.profileNavigator : self.treinoNavigator
+                        if proposal.url.path.starts(with: "/meal_plans") {
+                            navigator = self.dietaNavigator
+                        } else if proposal.url.path.starts(with: "/settings/") {
+                            navigator = self.profileNavigator
+                        } else {
+                            navigator = self.treinoNavigator
+                        }
                     } else if self.currentRole == "coach" {
                         if proposal.url.path.starts(with: "/clients") {
                             navigator = self.clientsNavigator
@@ -439,6 +467,8 @@ extension TabBarController: NavigatorDelegate {
             if selectedIndex == 0 {
                 navigator = treinoNavigator
             } else if selectedIndex == 1 {
+                navigator = dietaNavigator
+            } else if selectedIndex == 2 {
                 navigator = profileNavigator
             }
         } else if currentRole == "coach" {
@@ -492,6 +522,12 @@ extension TabBarController: NavigatorDelegate {
                         currentURL = visitable.currentVisitableURL
                     }
                 } else if selectedIndex == 1 {
+                    // Dieta tab
+                    let navController = self.dietaNavigator.rootViewController
+                    if let visitable = navController.visibleViewController as? VisitableViewController {
+                        currentURL = visitable.currentVisitableURL
+                    }
+                } else if selectedIndex == 2 {
                     // Profile tab
                     let navController = self.profileNavigator.rootViewController
                     if let visitable = navController.visibleViewController as? VisitableViewController {
@@ -534,10 +570,16 @@ extension TabBarController: NavigatorDelegate {
 extension TabBarController: UITabBarControllerDelegate {
     func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
         if currentRole == "client" {
-            // Check if this is the profile tab
-            if viewController.tabBarItem.tag == 1 {
-                // Navigate to profile page when profile tab is selected
+            // Handle client tab navigation
+            switch viewController.tabBarItem.tag {
+            case 1:
+                // Dieta tab
+                dietaNavigator.route(URL(string: "\(App.baseURL)/meal_plans")!)
+            case 2:
+                // Profile tab
                 profileNavigator.route(URL(string: "\(App.baseURL)/settings/profile")!)
+            default:
+                break
             }
         } else if currentRole == "coach" {
             // Handle coach tab navigation
