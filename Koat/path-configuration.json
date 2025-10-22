@@ -45,6 +45,14 @@
       }
     },
     {
+      "patterns": ["^/registration/new$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
       "patterns": ["^/session$"],
       "properties": {
         "view_controller": "logout"
@@ -80,6 +88,32 @@
       "properties": {
         "pull_to_refresh_enabled": true,
         "presentation": "push"
+      }
+    },
+    {
+      "patterns": ["^/meal_plans$"],
+      "properties": {
+        "view_controller": "dieta",
+        "pull_to_refresh_enabled": true,
+        "presentation": "replace",
+        "navigation_bar_hidden": true
+      }
+    },
+    {
+      "patterns": ["^/anthropometric_assessments/comparison$"],
+      "properties": {
+        "view_controller": "evolucao",
+        "pull_to_refresh_enabled": true,
+        "presentation": "replace",
+        "navigation_bar_hidden": true
+      }
+    },
+    {
+      "patterns": ["^/anthropometric_assessments$"],
+      "properties": {
+        "pull_to_refresh_enabled": true,
+        "presentation": "replace",
+        "navigation_bar_hidden": true
       }
     },
     {

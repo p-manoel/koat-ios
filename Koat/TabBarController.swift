@@ -19,6 +19,7 @@ class TabBarController: UITabBarController {
     // Client navigators
     var treinoNavigator: Navigator!
     var dietaNavigator: Navigator!
+    var evolucaoNavigator: Navigator!
     var profileNavigator: Navigator!
     
     // Coach navigators
@@ -123,6 +124,12 @@ class TabBarController: UITabBarController {
                         currentURL = visitable.currentVisitableURL
                     }
                 } else if selectedIndex == 2 {
+                    // Evolucao tab
+                    let navController = self.evolucaoNavigator.rootViewController
+                    if let visitable = navController.visibleViewController as? VisitableViewController {
+                        currentURL = visitable.currentVisitableURL
+                    }
+                } else if selectedIndex == 3 {
                     // Profile tab
                     let navController = self.profileNavigator.rootViewController
                     if let visitable = navController.visibleViewController as? VisitableViewController {
@@ -181,6 +188,7 @@ class TabBarController: UITabBarController {
         if currentRole == "client" {
             treinoNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
             dietaNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
+            evolucaoNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
             profileNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
         } else if currentRole == "coach" {
             clientsNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
@@ -195,6 +203,8 @@ class TabBarController: UITabBarController {
             treinoNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
             dietaNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
             dietaNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
+            evolucaoNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
+            evolucaoNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
             profileNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
             profileNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
         } else if currentRole == "coach" {
@@ -214,9 +224,12 @@ class TabBarController: UITabBarController {
             if url.path.starts(with: "/meal_plans") {
                 // Meal plan pages should select dieta tab
                 selectedIndex = 1
+            } else if url.path.starts(with: "/anthropometric_assessments") {
+                // Anthropometric assessment pages should select evolucao tab
+                selectedIndex = 2
             } else if url.path.starts(with: "/settings/") {
                 // Profile-related pages should select profile tab
-                selectedIndex = 2
+                selectedIndex = 3
             } else {
                 // All other pages (including home, workout plans, etc.) should select treino tab
                 selectedIndex = 0
@@ -237,42 +250,50 @@ class TabBarController: UITabBarController {
     
     
     private func setupClientTabs(with navigator: Navigator) {
-        
+
         // Create new navigators for each tab
         let treinoURL = URL(string: "\(App.baseURL)")!
         let dietaURL = URL(string: "\(App.baseURL)/meal_plans")!
+        let evolucaoURL = URL(string: "\(App.baseURL)/anthropometric_assessments/comparison")!
         let profileURL = URL(string: "\(App.baseURL)/settings/profile")!
-        
+
         // Create navigator for treino tab
         treinoNavigator = Navigator(configuration: .init(name: "treino", startLocation: treinoURL))
         treinoNavigator.delegate = self
-        
+
         // Create navigator for dieta tab
         dietaNavigator = Navigator(configuration: .init(name: "dieta", startLocation: dietaURL))
         dietaNavigator.delegate = self
-        
+
+        // Create navigator for evolucao tab
+        evolucaoNavigator = Navigator(configuration: .init(name: "evolucao", startLocation: evolucaoURL))
+        evolucaoNavigator.delegate = self
+
         // Create navigator for profile tab
         profileNavigator = Navigator(configuration: .init(name: "profile", startLocation: profileURL))
         profileNavigator.delegate = self
-        
+
         // Set initial URL
         currentURL = treinoURL
-        
+
         // Configure tab bar items
         let treinoTab = treinoNavigator.rootViewController
         treinoTab.tabBarItem = UITabBarItem(title: "Treino", image: UIImage(systemName: "dumbbell"), tag: 0)
-        
+
         let dietaTab = dietaNavigator.rootViewController
         dietaTab.tabBarItem = UITabBarItem(title: "Dieta", image: UIImage(systemName: "fork.knife"), tag: 1)
-        
+
+        let evolucaoTab = evolucaoNavigator.rootViewController
+        evolucaoTab.tabBarItem = UITabBarItem(title: "Evolução", image: UIImage(systemName: "chart.line.uptrend.xyaxis"), tag: 2)
+
         let profileTab = profileNavigator.rootViewController
-        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 2)
-        
+        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 3)
+
         // Don't hide navigation bar - let Hotwire Native handle it based on navigation depth
         // The navigation bar will be shown/hidden automatically when pushing/popping views
-        
+
         // Set view controllers
-        viewControllers = [treinoTab, dietaTab, profileTab]
+        viewControllers = [treinoTab, dietaTab, evolucaoTab, profileTab]
         
         // Configure tab bar appearance
         tabBar.tintColor = UIColor.systemBlue
@@ -298,7 +319,16 @@ class TabBarController: UITabBarController {
         // Navigate to the initial URLs for each navigator
         treinoNavigator.route(treinoURL)
         dietaNavigator.route(dietaURL)
+        evolucaoNavigator.route(evolucaoURL)
         profileNavigator.route(profileURL)
+
+        // Ensure navigation bars are hidden for tabs that should not show them
+        DispatchQueue.main.async {
+            self.treinoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+            self.dietaNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+            self.evolucaoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+            self.profileNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+        }
     }
     
     private func setupCoachTabs(with navigator: Navigator) {
@@ -426,6 +456,8 @@ extension TabBarController: NavigatorDelegate {
                     if self.currentRole == "client" {
                         if proposal.url.path.starts(with: "/meal_plans") {
                             navigator = self.dietaNavigator
+                        } else if proposal.url.path.starts(with: "/anthropometric_assessments") {
+                            navigator = self.evolucaoNavigator
                         } else if proposal.url.path.starts(with: "/settings/") {
                             navigator = self.profileNavigator
                         } else {
@@ -462,13 +494,15 @@ extension TabBarController: NavigatorDelegate {
     
     private func getCurrentVisitable() -> VisitableViewController? {
         var navigator: Navigator?
-        
+
         if currentRole == "client" {
             if selectedIndex == 0 {
                 navigator = treinoNavigator
             } else if selectedIndex == 1 {
                 navigator = dietaNavigator
             } else if selectedIndex == 2 {
+                navigator = evolucaoNavigator
+            } else if selectedIndex == 3 {
                 navigator = profileNavigator
             }
         } else if currentRole == "coach" {
@@ -528,6 +562,12 @@ extension TabBarController: NavigatorDelegate {
                         currentURL = visitable.currentVisitableURL
                     }
                 } else if selectedIndex == 2 {
+                    // Evolucao tab
+                    let navController = self.evolucaoNavigator.rootViewController
+                    if let visitable = navController.visibleViewController as? VisitableViewController {
+                        currentURL = visitable.currentVisitableURL
+                    }
+                } else if selectedIndex == 3 {
                     // Profile tab
                     let navController = self.profileNavigator.rootViewController
                     if let visitable = navController.visibleViewController as? VisitableViewController {
@@ -572,12 +612,34 @@ extension TabBarController: UITabBarControllerDelegate {
         if currentRole == "client" {
             // Handle client tab navigation
             switch viewController.tabBarItem.tag {
+            case 0:
+                // Treino tab
+                treinoNavigator.route(URL(string: "\(App.baseURL)")!)
+                // Ensure navigation bar is hidden
+                DispatchQueue.main.async {
+                    self.treinoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+                }
             case 1:
                 // Dieta tab
                 dietaNavigator.route(URL(string: "\(App.baseURL)/meal_plans")!)
+                // Ensure navigation bar is hidden
+                DispatchQueue.main.async {
+                    self.dietaNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+                }
             case 2:
+                // Evolucao tab
+                evolucaoNavigator.route(URL(string: "\(App.baseURL)/anthropometric_assessments/comparison")!)
+                // Ensure navigation bar is hidden
+                DispatchQueue.main.async {
+                    self.evolucaoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+                }
+            case 3:
                 // Profile tab
                 profileNavigator.route(URL(string: "\(App.baseURL)/settings/profile")!)
+                // Ensure navigation bar is hidden
+                DispatchQueue.main.async {
+                    self.profileNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+                }
             default:
                 break
             }
