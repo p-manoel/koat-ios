@@ -28,9 +28,18 @@ class AppWebViewController: HotwireWebViewController {
         // Check if navigation bar should be hidden
         let navigationBarHidden = properties["navigation_bar_hidden"] as? Bool ?? false
 
-        // Special handling for client tabs - force hide navigation bar
-        let clientTabPaths = ["/anthropometric_assessments", "/meal_plans", "/settings/profile"]
-        if clientTabPaths.contains(where: { currentVisitableURL.path.contains($0) }) || currentVisitableURL.path == "/" {
+        // Special handling for tab roots - force hide navigation bar
+        // Only hide for exact root tab paths, not for nested routes like edit pages
+        let tabRootPaths = [
+            "/",                                      // Treino (workout) tab root
+            "/clients",                               // Clients tab root
+            "/exercises",                             // Exercises tab root
+            "/meal_plans",                            // Meal plans tab root
+            "/anthropometric_assessments",            // Assessments tab root
+            "/anthropometric_assessments/comparison", // Evolution tab root
+            "/settings/profile"                       // Profile settings tab root
+        ]
+        if tabRootPaths.contains(currentVisitableURL.path) {
             navigationController?.setNavigationBarHidden(true, animated: animated)
             #if DEBUG
             print("AppWebViewController - Force hiding nav for client tab - URL: \(currentVisitableURL.absoluteString)")

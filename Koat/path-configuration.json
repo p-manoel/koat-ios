@@ -75,6 +75,110 @@
       }
     },
     {
+      "patterns": ["^/clients/[0-9]+/workout_plans/new$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+/workout_plans/[0-9]+/edit$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+/meal_plans/new$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+/meal_plans/[0-9]+/edit$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+/meal_plans/[0-9]+$"],
+      "properties": {
+        "pull_to_refresh_enabled": true,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/workout_plans/[0-9]+/routines/[0-9]+/edit$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/meal_plans/[0-9]+/edit$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/workout_plans/[0-9]+/edit$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/new$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/[0-9]+/edit$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/[0-9]+$"],
+      "properties": {
+        "pull_to_refresh_enabled": true,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/select$"],
+      "properties": {
+        "pull_to_refresh_enabled": false,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
+      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/comparison$"],
+      "properties": {
+        "pull_to_refresh_enabled": true,
+        "presentation": "push",
+        "navigation_bar_hidden": false
+      }
+    },
+    {
       "patterns": ["^/exercises$"],
       "properties": {
         "view_controller": "exercises",
@@ -129,11 +233,12 @@
         "^/exercises/new$",
         "^/exercises/[0-9]+/edit$",
         "^/clients/new$",
-        "^/clients/[0-9]+/edit$",
         "^/workout_plans/new$",
-        "^/workout_plans/[0-9]+/edit$",
         "^/routines/new$",
         "^/routines/[0-9]+/edit$",
+        "^/meal_plans/new$",
+        "^/anthropometric_assessments/new$",
+        "^/anthropometric_assessments/[0-9]+/edit$",
         "^/settings/profile/edit$"
       ],
       "properties": {
