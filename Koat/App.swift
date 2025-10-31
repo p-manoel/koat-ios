@@ -110,12 +110,6 @@ final class App {
 
 extension App: NavigatorDelegate {
     func handle(proposal: VisitProposal) -> ProposalResult {
-        // Check if this is a PDF export URL
-        if proposal.url.path.contains("/export/") && proposal.url.path.hasSuffix(".pdf") {
-            handlePDFExport(url: proposal.url)
-            return .reject // Reject the navigation as we're handling it natively
-        }
-
         // Check if navigating to login page while TabBarController is active
         if proposal.url.path == "/session/new" {
             // If TabBarController is the root, this is a logout scenario
@@ -138,46 +132,6 @@ extension App: NavigatorDelegate {
         return .accept
     }
 
-    private func handlePDFExport(url: URL) {
-        // Get the current view controller for presentation
-        guard let currentViewController = getCurrentViewController() else {
-            print("Could not get current view controller for PDF download")
-            return
-        }
-
-        // Get cookies from WebView for authentication
-        let dataStore = WKWebsiteDataStore.default()
-        dataStore.httpCookieStore.getAllCookies { cookies in
-            // Filter cookies for our domain
-            let relevantCookies = cookies.filter { cookie in
-                return url.host?.contains(cookie.domain) ?? false ||
-                       cookie.domain.contains(".koat.io") ||
-                       cookie.domain.contains("localhost")
-            }
-
-            // Create PDF download handler and handle the download
-            let pdfHandler = PDFDownloadHandler(presentingViewController: currentViewController)
-            pdfHandler.handlePDFDownload(from: url, cookies: relevantCookies)
-        }
-    }
-
-    private func getCurrentViewController() -> UIViewController? {
-        // Try to get the visible view controller from the current root
-        if let tabBar = sceneDelegate?.window?.rootViewController as? TabBarController {
-            // If using tab bar, get the selected tab's navigation controller
-            if let navController = tabBar.selectedViewController as? UINavigationController {
-                return navController.visibleViewController ?? navController
-            }
-            return tabBar.selectedViewController ?? tabBar
-        } else if let navController = sceneDelegate?.window?.rootViewController as? UINavigationController {
-            // If using navigator directly
-            return navController.visibleViewController ?? navController
-        } else {
-            // Fallback to root view controller
-            return sceneDelegate?.window?.rootViewController
-        }
-    }
-    
     func visitableDidRender() {
         // Only check for role if we're using the main navigator (not TabBarController)
         guard sceneDelegate?.window?.rootViewController == navigator.rootViewController else {

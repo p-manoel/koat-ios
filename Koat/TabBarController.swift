@@ -408,12 +408,6 @@ class TabBarController: UITabBarController {
 
 extension TabBarController: NavigatorDelegate {
     func handle(proposal: VisitProposal) -> ProposalResult {
-        // Check if this is a PDF export URL
-        if proposal.url.path.contains("/export/") && proposal.url.path.hasSuffix(".pdf") {
-            handlePDFExport(url: proposal.url)
-            return .reject // Reject the navigation as we're handling it natively
-        }
-
         // Check if navigating to login page - if so, trigger logout
         if proposal.url.path == "/session/new" || proposal.url.path.starts(with: "/registration") {
             // Immediately hide the tab bar and clear state
@@ -608,34 +602,6 @@ extension TabBarController: NavigatorDelegate {
             }
         }
     }
-
-    private func handlePDFExport(url: URL) {
-        // Get cookies from WebView for authentication
-        let dataStore = WKWebsiteDataStore.default()
-        dataStore.httpCookieStore.getAllCookies { [weak self] cookies in
-            guard let self = self else { return }
-
-            // Filter cookies for our domain
-            let relevantCookies = cookies.filter { cookie in
-                return url.host?.contains(cookie.domain) ?? false ||
-                       cookie.domain.contains(".koat.io") ||
-                       cookie.domain.contains("localhost")
-            }
-
-            // Get the current view controller for presentation
-            let currentViewController: UIViewController
-            if let navController = self.selectedViewController as? UINavigationController {
-                currentViewController = navController.visibleViewController ?? navController
-            } else {
-                currentViewController = self.selectedViewController ?? self
-            }
-
-            // Create PDF download handler and handle the download
-            let pdfHandler = PDFDownloadHandler(presentingViewController: currentViewController)
-            pdfHandler.handlePDFDownload(from: url, cookies: relevantCookies)
-        }
-    }
-
 }
 
 // MARK: - UITabBarControllerDelegate
