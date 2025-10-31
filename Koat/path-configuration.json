@@ -179,18 +179,6 @@
       }
     },
     {
-      "patterns": [
-        "^/clients/[0-9]+/export/workout-plan\\.pdf$",
-        "^/clients/[0-9]+/export/meal-plan\\.pdf$",
-        "^/clients/[0-9]+/export/assessment\\.pdf$",
-        "^/clients/[0-9]+/export/all\\.pdf$"
-      ],
-      "properties": {
-        "presentation": "external",
-        "pull_to_refresh_enabled": false
-      }
-    },
-    {
       "patterns": ["^/exercises$"],
       "properties": {
         "view_controller": "exercises",
