@@ -48,6 +48,7 @@ class AppWebViewController: HotwireWebViewController {
         super.viewDidAppear(animated)
         // Update again in case the navigation controller wasn't ready in viewWillAppear
         updateNavigationBarVisibility(animated: false)
+        updateTabBarVisibility()
     }
     
     private func updateNavigationBarVisibility(animated: Bool) {
@@ -90,5 +91,47 @@ class AppWebViewController: HotwireWebViewController {
 
         // Update navigation bar visibility after page renders
         updateNavigationBarVisibility(animated: false)
+        updateTabBarVisibility()
+    }
+
+    private func updateTabBarVisibility() {
+        // Get path configuration properties for current URL
+        let properties = Hotwire.config.pathConfiguration.properties(for: currentVisitableURL)
+
+        // Check if tab bar should be hidden
+        if let hideTabBar = properties["hide_tab_bar"] as? Bool, hideTabBar {
+            #if DEBUG
+            print("AppWebViewController - Hiding tab bar for: \(currentVisitableURL.path)")
+            #endif
+
+            // Find the TabBarController and hide its tab bar
+            if let tabBarController = findTabBarController() {
+                DispatchQueue.main.async {
+                    tabBarController.tabBar.isHidden = true
+                }
+            }
+        } else {
+            #if DEBUG
+            print("AppWebViewController - Showing tab bar for: \(currentVisitableURL.path)")
+            #endif
+
+            // Show tab bar again when navigating to normal pages
+            if let tabBarController = findTabBarController() {
+                DispatchQueue.main.async {
+                    tabBarController.tabBar.isHidden = false
+                }
+            }
+        }
+    }
+
+    private func findTabBarController() -> UITabBarController? {
+        var currentVC: UIViewController? = self
+        while let vc = currentVC {
+            if let tabBarController = vc.tabBarController {
+                return tabBarController
+            }
+            currentVC = vc.parent
+        }
+        return nil
     }
 }
