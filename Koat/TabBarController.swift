@@ -167,10 +167,10 @@ class TabBarController: UITabBarController {
     }
     
     private func updateTabBarVisibility(for url: URL) {
-        // List of authentication-related paths where tab bar should be hidden
-        let authPaths = ["/session/new", "/registration/new", "/password/new", "/password/edit"]
+        // List of paths where tab bar should be hidden (auth and subscription pages)
+        let authPaths = ["/session/new", "/registration/new", "/password/new", "/password/edit", "/subscriptions/select_plan"]
         let shouldHideTabBar = authPaths.contains(url.path)
-        
+
         if shouldHideTabBar {
             tabBar.isHidden = true
             // Hide navigation bar for all navigators
