@@ -171,6 +171,10 @@ class TabBarController: UITabBarController {
         let authPaths = ["/session/new", "/registration/new", "/password/new", "/password/edit", "/subscriptions/select_plan"]
         let shouldHideTabBar = authPaths.contains(url.path)
 
+        #if DEBUG
+        print("TabBarController - updateTabBarVisibility - URL: \(url.path) - Should hide: \(shouldHideTabBar)")
+        #endif
+
         if shouldHideTabBar {
             tabBar.isHidden = true
             // Hide navigation bar for all navigators
@@ -309,13 +313,14 @@ class TabBarController: UITabBarController {
         
         // Set delegate to handle tab selection
         delegate = self
-        
+
         // Start with treino tab selected
         selectedIndex = 0
-        
-        // Make tab bar visible now that tabs are configured
-        tabBar.isHidden = false
-        
+
+        // Keep tab bar hidden initially - will be shown after first successful navigation
+        // (if user gets redirected to subscription page, tab bar stays hidden)
+        tabBar.isHidden = true
+
         // Navigate to the initial URLs for each navigator
         treinoNavigator.route(treinoURL)
         dietaNavigator.route(dietaURL)
@@ -384,13 +389,14 @@ class TabBarController: UITabBarController {
         
         // Set delegate to handle tab selection
         delegate = self
-        
+
         // Start with clients tab selected
         selectedIndex = 0
-        
-        // Make tab bar visible now that tabs are configured
-        tabBar.isHidden = false
-        
+
+        // Keep tab bar hidden initially - will be shown after first successful navigation
+        // (if user gets redirected to subscription page, tab bar stays hidden)
+        tabBar.isHidden = true
+
         // Navigate to the initial URLs for each navigator
         clientsNavigator.route(clientsURL)
         exercisesNavigator.route(exercisesURL)
@@ -420,10 +426,30 @@ extension TabBarController: NavigatorDelegate {
             // Reject this proposal since performLogout will handle the navigation properly
             return .reject
         }
-        
+
         // Store current URL
         currentURL = proposal.url
-        
+
+        // Check if tab bar should be hidden based on path configuration
+        if let hideTabBar = proposal.properties["hide_tab_bar"] as? Bool, hideTabBar {
+            #if DEBUG
+            print("TabBarController - Hiding tab bar due to hide_tab_bar property for: \(proposal.url.path)")
+            #endif
+            DispatchQueue.main.async {
+                self.tabBar.isHidden = true
+            }
+        } else if currentURL?.path == "/subscriptions/select_plan" && proposal.url.path != "/subscriptions/select_plan" {
+            // Navigating away from a page that had hide_tab_bar - show tab bar again if we have a role
+            if currentRole != nil {
+                #if DEBUG
+                print("TabBarController - Showing tab bar when navigating away from subscription page")
+                #endif
+                DispatchQueue.main.async {
+                    self.tabBar.isHidden = false
+                }
+            }
+        }
+
         // Update tab bar visibility based on the URL
         updateTabBarVisibility(for: proposal.url)
         
@@ -528,7 +554,24 @@ extension TabBarController: NavigatorDelegate {
             }
             return
         }
-        
+
+        // Check if we've navigated to subscription page - hide tab bar
+        if let visitable = getCurrentVisitable() {
+            let currentPath = visitable.currentVisitableURL.path
+            #if DEBUG
+            print("TabBarController - navigatorDidFinishNavigation - Path: \(currentPath)")
+            #endif
+
+            if currentPath == "/subscriptions/select_plan" {
+                #if DEBUG
+                print("TabBarController - Hiding tab bar for subscription page")
+                #endif
+                DispatchQueue.main.async {
+                    self.tabBar.isHidden = true
+                }
+            }
+        }
+
         // Navigation bar visibility is now handled by AppWebViewController
     }
     
@@ -598,7 +641,17 @@ extension TabBarController: NavigatorDelegate {
             
             if let url = currentURL {
                 self.currentURL = url
-                self.updateTabBarVisibility(for: url)
+
+                // Check path configuration for hide_tab_bar property
+                let properties = Hotwire.config.pathConfiguration.properties(for: url)
+                if let hideTabBar = properties["hide_tab_bar"] as? Bool, hideTabBar {
+                    #if DEBUG
+                    print("TabBarController - visitableDidRender - Hiding tab bar for: \(url.path)")
+                    #endif
+                    self.tabBar.isHidden = true
+                } else {
+                    self.updateTabBarVisibility(for: url)
+                }
             }
         }
     }
