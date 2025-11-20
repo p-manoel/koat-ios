@@ -19,6 +19,7 @@ class TabBarController: UITabBarController {
     // Client navigators
     var treinoNavigator: Navigator!
     var dietaNavigator: Navigator!
+    var manipuladosNavigator: Navigator!
     var evolucaoNavigator: Navigator!
     var profileNavigator: Navigator!
     
@@ -124,12 +125,18 @@ class TabBarController: UITabBarController {
                         currentURL = visitable.currentVisitableURL
                     }
                 } else if selectedIndex == 2 {
+                    // Manipulados tab
+                    let navController = self.manipuladosNavigator.rootViewController
+                    if let visitable = navController.visibleViewController as? VisitableViewController {
+                        currentURL = visitable.currentVisitableURL
+                    }
+                } else if selectedIndex == 3 {
                     // Evolucao tab
                     let navController = self.evolucaoNavigator.rootViewController
                     if let visitable = navController.visibleViewController as? VisitableViewController {
                         currentURL = visitable.currentVisitableURL
                     }
-                } else if selectedIndex == 3 {
+                } else if selectedIndex == 4 {
                     // Profile tab
                     let navController = self.profileNavigator.rootViewController
                     if let visitable = navController.visibleViewController as? VisitableViewController {
@@ -192,6 +199,7 @@ class TabBarController: UITabBarController {
         if currentRole == "client" {
             treinoNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
             dietaNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
+            manipuladosNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
             evolucaoNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
             profileNavigator?.rootViewController.setNavigationBarHidden(true, animated: false)
         } else if currentRole == "coach" {
@@ -207,6 +215,8 @@ class TabBarController: UITabBarController {
             treinoNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
             dietaNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
             dietaNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
+            manipuladosNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
+            manipuladosNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
             evolucaoNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
             evolucaoNavigator?.rootViewController.navigationBar.prefersLargeTitles = false
             profileNavigator?.rootViewController.setNavigationBarHidden(false, animated: false)
@@ -226,14 +236,17 @@ class TabBarController: UITabBarController {
         // Determine which tab should be selected based on the URL path
         if currentRole == "client" {
             if url.path.starts(with: "/meal_plans") {
-                // Meal plan pages should select dieta tab
+                // Dieta tab
                 selectedIndex = 1
+            } else if url.path.starts(with: "/compounds_plans") {
+                // Manipulados tab
+                selectedIndex = 2
             } else if url.path.starts(with: "/anthropometric_assessments") {
                 // Anthropometric assessment pages should select evolucao tab
-                selectedIndex = 2
+                selectedIndex = 3
             } else if url.path.starts(with: "/settings/") {
                 // Profile-related pages should select profile tab
-                selectedIndex = 3
+                selectedIndex = 4
             } else {
                 // All other pages (including home, workout plans, etc.) should select treino tab
                 selectedIndex = 0
@@ -258,6 +271,7 @@ class TabBarController: UITabBarController {
         // Create new navigators for each tab
         let treinoURL = URL(string: "\(App.baseURL)")!
         let dietaURL = URL(string: "\(App.baseURL)/meal_plans")!
+        let manipuladosURL = URL(string: "\(App.baseURL)/compounds_plans")!
         let evolucaoURL = URL(string: "\(App.baseURL)/anthropometric_assessments/comparison")!
         let profileURL = URL(string: "\(App.baseURL)/settings/profile")!
 
@@ -268,6 +282,10 @@ class TabBarController: UITabBarController {
         // Create navigator for dieta tab
         dietaNavigator = Navigator(configuration: .init(name: "dieta", startLocation: dietaURL))
         dietaNavigator.delegate = self
+
+        // Create navigator for manipulados tab
+        manipuladosNavigator = Navigator(configuration: .init(name: "manipulados", startLocation: manipuladosURL))
+        manipuladosNavigator.delegate = self
 
         // Create navigator for evolucao tab
         evolucaoNavigator = Navigator(configuration: .init(name: "evolucao", startLocation: evolucaoURL))
@@ -287,17 +305,20 @@ class TabBarController: UITabBarController {
         let dietaTab = dietaNavigator.rootViewController
         dietaTab.tabBarItem = UITabBarItem(title: "Dieta", image: UIImage(systemName: "fork.knife"), tag: 1)
 
+        let manipuladosTab = manipuladosNavigator.rootViewController
+        manipuladosTab.tabBarItem = UITabBarItem(title: "Manipulados", image: UIImage(systemName: "pills"), tag: 2)
+
         let evolucaoTab = evolucaoNavigator.rootViewController
-        evolucaoTab.tabBarItem = UITabBarItem(title: "Evolução", image: UIImage(systemName: "chart.line.uptrend.xyaxis"), tag: 2)
+        evolucaoTab.tabBarItem = UITabBarItem(title: "Evolução", image: UIImage(systemName: "chart.line.uptrend.xyaxis"), tag: 3)
 
         let profileTab = profileNavigator.rootViewController
-        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 3)
+        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 4)
 
         // Don't hide navigation bar - let Hotwire Native handle it based on navigation depth
         // The navigation bar will be shown/hidden automatically when pushing/popping views
 
         // Set view controllers
-        viewControllers = [treinoTab, dietaTab, evolucaoTab, profileTab]
+        viewControllers = [treinoTab, dietaTab, manipuladosTab, evolucaoTab, profileTab]
         
         // Configure tab bar appearance
         tabBar.tintColor = UIColor.systemBlue
@@ -324,6 +345,7 @@ class TabBarController: UITabBarController {
         // Navigate to the initial URLs for each navigator
         treinoNavigator.route(treinoURL)
         dietaNavigator.route(dietaURL)
+        manipuladosNavigator.route(manipuladosURL)
         evolucaoNavigator.route(evolucaoURL)
         profileNavigator.route(profileURL)
 
@@ -331,6 +353,7 @@ class TabBarController: UITabBarController {
         DispatchQueue.main.async {
             self.treinoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
             self.dietaNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+            self.manipuladosNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
             self.evolucaoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
             self.profileNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
         }
@@ -482,6 +505,8 @@ extension TabBarController: NavigatorDelegate {
                     if self.currentRole == "client" {
                         if proposal.url.path.starts(with: "/meal_plans") {
                             navigator = self.dietaNavigator
+                        } else if proposal.url.path.starts(with: "/compounds_plans") {
+                            navigator = self.manipuladosNavigator
                         } else if proposal.url.path.starts(with: "/anthropometric_assessments") {
                             navigator = self.evolucaoNavigator
                         } else if proposal.url.path.starts(with: "/settings/") {
@@ -527,8 +552,10 @@ extension TabBarController: NavigatorDelegate {
             } else if selectedIndex == 1 {
                 navigator = dietaNavigator
             } else if selectedIndex == 2 {
-                navigator = evolucaoNavigator
+                navigator = manipuladosNavigator
             } else if selectedIndex == 3 {
+                navigator = evolucaoNavigator
+            } else if selectedIndex == 4 {
                 navigator = profileNavigator
             }
         } else if currentRole == "coach" {
@@ -605,12 +632,18 @@ extension TabBarController: NavigatorDelegate {
                         currentURL = visitable.currentVisitableURL
                     }
                 } else if selectedIndex == 2 {
+                    // Manipulados tab
+                    let navController = self.manipuladosNavigator.rootViewController
+                    if let visitable = navController.visibleViewController as? VisitableViewController {
+                        currentURL = visitable.currentVisitableURL
+                    }
+                } else if selectedIndex == 3 {
                     // Evolucao tab
                     let navController = self.evolucaoNavigator.rootViewController
                     if let visitable = navController.visibleViewController as? VisitableViewController {
                         currentURL = visitable.currentVisitableURL
                     }
-                } else if selectedIndex == 3 {
+                } else if selectedIndex == 4 {
                     // Profile tab
                     let navController = self.profileNavigator.rootViewController
                     if let visitable = navController.visibleViewController as? VisitableViewController {
@@ -679,13 +712,20 @@ extension TabBarController: UITabBarControllerDelegate {
                     self.dietaNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
                 }
             case 2:
+                // Manipulados tab
+                manipuladosNavigator.route(URL(string: "\(App.baseURL)/compounds_plans")!)
+                // Ensure navigation bar is hidden
+                DispatchQueue.main.async {
+                    self.manipuladosNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+                }
+            case 3:
                 // Evolucao tab
                 evolucaoNavigator.route(URL(string: "\(App.baseURL)/anthropometric_assessments/comparison")!)
                 // Ensure navigation bar is hidden
                 DispatchQueue.main.async {
                     self.evolucaoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
                 }
-            case 3:
+            case 4:
                 // Profile tab
                 profileNavigator.route(URL(string: "\(App.baseURL)/settings/profile")!)
                 // Ensure navigation bar is hidden
