@@ -207,16 +207,74 @@ extension App: NavigatorDelegate {
     }
     
     private func switchToTabBarController(with role: String) {
-        // Set up the tab bar controller with the detected role
-        // Pass the navigator but TabBarController will create its own navigators for each tab
-        tabBarController.setupForRole(role, with: navigator)
+        // Fetch tab configuration from server
+        fetchTabConfiguration { [weak self] tabs in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                guard let tabs = tabs, !tabs.isEmpty else {
+                    #if DEBUG
+                    print("App - Failed to fetch tab configuration, retrying...")
+                    #endif
+                    // Retry after a short delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.switchToTabBarController(with: role)
+                    }
+                    return
+                }
+                
+                // Use server-provided tab configuration
+                self.tabBarController.setupWithConfiguration(tabs, role: role, with: self.navigator)
+                
+                // Switch the root view controller
+                self.sceneDelegate?.window?.rootViewController = self.tabBarController
+                
+                // Animate the transition
+                if let window = self.sceneDelegate?.window {
+                    UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
+                }
+            }
+        }
+    }
+    
+    private func fetchTabConfiguration(completion: @escaping ([TabConfiguration]?) -> Void) {
+        guard let url = URL(string: "\(App.baseURL)/hotwire/native/v1/ios/tab_configuration") else {
+            completion(nil)
+            return
+        }
         
-        // Switch the root view controller
-        sceneDelegate?.window?.rootViewController = tabBarController
-        
-        // Animate the transition
-        if let window = sceneDelegate?.window {
-            UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
+        // Get cookies from WKWebsiteDataStore for authentication
+        let dataStore = WKWebsiteDataStore.default()
+        dataStore.httpCookieStore.getAllCookies { cookies in
+            var request = URLRequest(url: url)
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            
+            // Add cookies to request for authentication
+            let cookieHeader = cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
+            request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+            
+            URLSession.shared.dataTask(with: request) { data, response, error in
+                guard let data = data, error == nil else {
+                    #if DEBUG
+                    print("App - Failed to fetch tab configuration: \(error?.localizedDescription ?? "Unknown error")")
+                    #endif
+                    completion(nil)
+                    return
+                }
+                
+                do {
+                    let tabs = try JSONDecoder().decode([TabConfiguration].self, from: data)
+                    #if DEBUG
+                    print("App - Fetched \(tabs.count) tabs from server")
+                    #endif
+                    completion(tabs)
+                } catch {
+                    #if DEBUG
+                    print("App - Failed to decode tab configuration: \(error)")
+                    #endif
+                    completion(nil)
+                }
+            }.resume()
         }
     }
 }

@@ -83,25 +83,108 @@ class TabBarController: UITabBarController {
         }
     }
     
-    func setupForRole(_ role: String, with navigator: Navigator) {
+    // Dynamic tab configuration from server
+    func setupWithConfiguration(_ tabs: [TabConfiguration], role: String, with navigator: Navigator) {
         self.currentRole = role
         
         // Store the role
         UserDefaults.standard.set(role, forKey: "userRole")
         
-        // Set up tabs based on role
-        switch role {
-        case "coach":
-            setupCoachTabs(with: navigator)
-        case "client":
-            setupClientTabs(with: navigator)
-        default:
-            return
+        // Store navigators by tab id for later reference
+        var navigators: [String: Navigator] = [:]
+        var tabViewControllers: [UIViewController] = []
+        
+        for (index, tab) in tabs.enumerated() {
+            let url = URL(string: "\(App.baseURL)\(tab.path)")!
+            let nav = Navigator(configuration: .init(name: tab.id, startLocation: url))
+            nav.delegate = self
+            
+            let tabVC = nav.rootViewController
+            tabVC.tabBarItem = UITabBarItem(
+                title: tab.title,
+                image: UIImage(systemName: tab.icon),
+                tag: index
+            )
+            
+            tabViewControllers.append(tabVC)
+            navigators[tab.id] = nav
+            
+            // Store navigator references based on tab id
+            switch tab.id {
+            case "clients":
+                clientsNavigator = nav
+            case "exercises":
+                exercisesNavigator = nav
+            case "profile":
+                if role == "coach" {
+                    coachProfileNavigator = nav
+                } else {
+                    profileNavigator = nav
+                }
+            case "treino":
+                treinoNavigator = nav
+            case "dieta":
+                dietaNavigator = nav
+            case "manipulados":
+                manipuladosNavigator = nav
+            case "evolucao":
+                evolucaoNavigator = nav
+            default:
+                break
+            }
         }
         
-        // Show the tab bar
-        tabBar.isHidden = false
+        // Set initial URL
+        if let firstTab = tabs.first {
+            currentURL = URL(string: "\(App.baseURL)\(firstTab.path)")
+        }
+        
+        // Set view controllers
+        viewControllers = tabViewControllers
+        
+        // Configure tab bar appearance
+        tabBar.tintColor = UIColor.systemBlue
+        tabBar.unselectedItemTintColor = UIColor.systemGray
+        
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+        tabBarAppearance.backgroundColor = UIColor.systemBackground
+        
+        tabBar.standardAppearance = tabBarAppearance
+        tabBar.scrollEdgeAppearance = tabBarAppearance
+        
+        // Set delegate to handle tab selection
+        delegate = self
+        
+        // Start with first tab selected
+        selectedIndex = 0
+        
+        // Keep tab bar hidden initially - will be shown after first successful navigation
+        tabBar.isHidden = true
+        
+        // Navigate to initial URLs for each navigator
+        for (tabId, nav) in navigators {
+            if let tab = tabs.first(where: { $0.id == tabId }) {
+                let url = URL(string: "\(App.baseURL)\(tab.path)")!
+                nav.route(url)
+            }
+        }
+        
+        // Hide navigation bars for all tabs if client
+        if role == "client" {
+            DispatchQueue.main.async { [weak self] in
+                for nav in navigators.values {
+                    nav.rootViewController.setNavigationBarHidden(true, animated: false)
+                }
+            }
+        }
+        
+        // Store tabs configuration for tab selection handling
+        self.tabConfigurations = tabs
     }
+    
+    // Store tab configurations for dynamic tab selection
+    private var tabConfigurations: [TabConfiguration] = []
     
     private func startMonitoringNavigation() {
         // Use a timer to periodically check the current URL
@@ -175,7 +258,7 @@ class TabBarController: UITabBarController {
     
     private func updateTabBarVisibility(for url: URL) {
         // List of paths where tab bar should be hidden (auth and subscription pages)
-        let authPaths = ["/session/new", "/registration/new", "/password/new", "/password/edit", "/subscriptions/select_plan"]
+        let authPaths = ["/session/new", "/registration/new", "/password/new", "/password/edit", "/subscriptions/select_plan", "/clients/subscriptions", "/clients/subscriptions/new"]
         let shouldHideTabBar = authPaths.contains(url.path)
 
         #if DEBUG
@@ -266,171 +349,6 @@ class TabBarController: UITabBarController {
     }
     
     
-    private func setupClientTabs(with navigator: Navigator) {
-
-        // Create new navigators for each tab
-        let treinoURL = URL(string: "\(App.baseURL)")!
-        let dietaURL = URL(string: "\(App.baseURL)/meal_plans")!
-        let manipuladosURL = URL(string: "\(App.baseURL)/compounds_plans")!
-        let evolucaoURL = URL(string: "\(App.baseURL)/anthropometric_assessments/comparison")!
-        let profileURL = URL(string: "\(App.baseURL)/settings/profile")!
-
-        // Create navigator for treino tab
-        treinoNavigator = Navigator(configuration: .init(name: "treino", startLocation: treinoURL))
-        treinoNavigator.delegate = self
-
-        // Create navigator for dieta tab
-        dietaNavigator = Navigator(configuration: .init(name: "dieta", startLocation: dietaURL))
-        dietaNavigator.delegate = self
-
-        // Create navigator for manipulados tab
-        manipuladosNavigator = Navigator(configuration: .init(name: "manipulados", startLocation: manipuladosURL))
-        manipuladosNavigator.delegate = self
-
-        // Create navigator for evolucao tab
-        evolucaoNavigator = Navigator(configuration: .init(name: "evolucao", startLocation: evolucaoURL))
-        evolucaoNavigator.delegate = self
-
-        // Create navigator for profile tab
-        profileNavigator = Navigator(configuration: .init(name: "profile", startLocation: profileURL))
-        profileNavigator.delegate = self
-
-        // Set initial URL
-        currentURL = treinoURL
-
-        // Configure tab bar items
-        let treinoTab = treinoNavigator.rootViewController
-        treinoTab.tabBarItem = UITabBarItem(title: "Treino", image: UIImage(systemName: "dumbbell"), tag: 0)
-
-        let dietaTab = dietaNavigator.rootViewController
-        dietaTab.tabBarItem = UITabBarItem(title: "Dieta", image: UIImage(systemName: "fork.knife"), tag: 1)
-
-        let manipuladosTab = manipuladosNavigator.rootViewController
-        manipuladosTab.tabBarItem = UITabBarItem(title: "Manipulados", image: UIImage(systemName: "pills"), tag: 2)
-
-        let evolucaoTab = evolucaoNavigator.rootViewController
-        evolucaoTab.tabBarItem = UITabBarItem(title: "Evolução", image: UIImage(systemName: "chart.line.uptrend.xyaxis"), tag: 3)
-
-        let profileTab = profileNavigator.rootViewController
-        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 4)
-
-        // Don't hide navigation bar - let Hotwire Native handle it based on navigation depth
-        // The navigation bar will be shown/hidden automatically when pushing/popping views
-
-        // Set view controllers
-        viewControllers = [treinoTab, dietaTab, manipuladosTab, evolucaoTab, profileTab]
-        
-        // Configure tab bar appearance
-        tabBar.tintColor = UIColor.systemBlue
-        tabBar.unselectedItemTintColor = UIColor.systemGray
-        
-        // Fix tab bar background
-        let tabBarAppearance = UITabBarAppearance()
-        tabBarAppearance.configureWithOpaqueBackground()
-        tabBarAppearance.backgroundColor = UIColor.systemBackground
-        
-        tabBar.standardAppearance = tabBarAppearance
-        tabBar.scrollEdgeAppearance = tabBarAppearance
-        
-        // Set delegate to handle tab selection
-        delegate = self
-
-        // Start with treino tab selected
-        selectedIndex = 0
-
-        // Keep tab bar hidden initially - will be shown after first successful navigation
-        // (if user gets redirected to subscription page, tab bar stays hidden)
-        tabBar.isHidden = true
-
-        // Navigate to the initial URLs for each navigator
-        treinoNavigator.route(treinoURL)
-        dietaNavigator.route(dietaURL)
-        manipuladosNavigator.route(manipuladosURL)
-        evolucaoNavigator.route(evolucaoURL)
-        profileNavigator.route(profileURL)
-
-        // Ensure navigation bars are hidden for tabs that should not show them
-        DispatchQueue.main.async {
-            self.treinoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
-            self.dietaNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
-            self.manipuladosNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
-            self.evolucaoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
-            self.profileNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
-        }
-    }
-    
-    private func setupCoachTabs(with navigator: Navigator) {
-        
-        // Create new navigators for each tab
-        let clientsURL = URL(string: "\(App.baseURL)/clients")!
-        let exercisesURL = URL(string: "\(App.baseURL)/exercises")!
-        let profileURL = URL(string: "\(App.baseURL)/settings/profile")!
-        
-        // Create navigator for clients tab
-        clientsNavigator = Navigator(configuration: .init(name: "clients", startLocation: clientsURL))
-        clientsNavigator.delegate = self
-        let clientsTab = clientsNavigator.rootViewController
-        clientsTab.tabBarItem = UITabBarItem(title: "Clientes", image: UIImage(systemName: "person.2"), tag: 0)
-        
-        // Create navigator for exercises tab
-        exercisesNavigator = Navigator(configuration: .init(name: "exercises", startLocation: exercisesURL))
-        exercisesNavigator.delegate = self
-        
-        // Create navigator for profile tab
-        coachProfileNavigator = Navigator(configuration: .init(name: "profile", startLocation: profileURL))
-        coachProfileNavigator.delegate = self
-        
-        // Set TabBarController as delegate for ALL navigator instances to catch logout
-        
-        // Set initial URL
-        currentURL = clientsURL
-        
-        // Configure tab bar items
-        let exercisesTab = exercisesNavigator.rootViewController
-        exercisesTab.tabBarItem = UITabBarItem(title: "Exercícios", image: UIImage(systemName: "figure.strengthtraining.traditional"), tag: 1)
-        
-        let profileTab = coachProfileNavigator.rootViewController
-        profileTab.tabBarItem = UITabBarItem(title: "Perfil", image: UIImage(systemName: "person.circle"), tag: 2)
-        
-        // Don't hide navigation bar - let Hotwire Native handle it based on navigation depth
-        // The navigation bar will be shown/hidden automatically when pushing/popping views
-        
-        // Set view controllers
-        viewControllers = [clientsTab, exercisesTab, profileTab]
-        
-        // Configure tab bar appearance
-        tabBar.tintColor = UIColor.systemBlue
-        tabBar.unselectedItemTintColor = UIColor.systemGray
-        
-        // Fix tab bar background
-        let tabBarAppearance = UITabBarAppearance()
-        tabBarAppearance.configureWithOpaqueBackground()
-        tabBarAppearance.backgroundColor = UIColor.systemBackground
-        
-        tabBar.standardAppearance = tabBarAppearance
-        tabBar.scrollEdgeAppearance = tabBarAppearance
-        
-        // Set delegate to handle tab selection
-        delegate = self
-
-        // Start with clients tab selected
-        selectedIndex = 0
-
-        // Keep tab bar hidden initially - will be shown after first successful navigation
-        // (if user gets redirected to subscription page, tab bar stays hidden)
-        tabBar.isHidden = true
-
-        // Navigate to the initial URLs for each navigator
-        clientsNavigator.route(clientsURL)
-        exercisesNavigator.route(exercisesURL)
-        coachProfileNavigator.route(profileURL)
-    }
-    
-    // This method is no longer needed since setupClientTabs handles everything
-    // Keeping it for backwards compatibility if needed
-    func setupTabs(with navigator: Navigator) {
-        setupClientTabs(with: navigator)
-    }
 }
 
 // MARK: - NavigatorDelegate
@@ -461,7 +379,8 @@ extension TabBarController: NavigatorDelegate {
             DispatchQueue.main.async {
                 self.tabBar.isHidden = true
             }
-        } else if currentURL?.path == "/subscriptions/select_plan" && proposal.url.path != "/subscriptions/select_plan" {
+        } else if (currentURL?.path == "/subscriptions/select_plan" || currentURL?.path == "/clients/subscriptions" || currentURL?.path == "/clients/subscriptions/new") && 
+                   (proposal.url.path != "/subscriptions/select_plan" && proposal.url.path != "/clients/subscriptions" && proposal.url.path != "/clients/subscriptions/new") {
             // Navigating away from a page that had hide_tab_bar - show tab bar again if we have a role
             if currentRole != nil {
                 #if DEBUG
@@ -694,63 +613,48 @@ extension TabBarController: NavigatorDelegate {
 
 extension TabBarController: UITabBarControllerDelegate {
     func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
-        if currentRole == "client" {
-            // Handle client tab navigation
-            switch viewController.tabBarItem.tag {
-            case 0:
-                // Treino tab
-                treinoNavigator.route(URL(string: "\(App.baseURL)")!)
-                // Ensure navigation bar is hidden
+        let tag = viewController.tabBarItem.tag
+        
+        // Handle dynamic tabs from server configuration
+        guard tag < tabConfigurations.count else {
+            return true
+        }
+        
+        let tab = tabConfigurations[tag]
+        let url = URL(string: "\(App.baseURL)\(tab.path)")!
+        
+        // Get the navigator for this tab
+        if let navigator = navigatorForTabId(tab.id) {
+            navigator.route(url)
+            
+            // Hide navigation bar for client tabs
+            if currentRole == "client" {
                 DispatchQueue.main.async {
-                    self.treinoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
+                    navigator.rootViewController.setNavigationBarHidden(true, animated: false)
                 }
-            case 1:
-                // Dieta tab
-                dietaNavigator.route(URL(string: "\(App.baseURL)/meal_plans")!)
-                // Ensure navigation bar is hidden
-                DispatchQueue.main.async {
-                    self.dietaNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
-                }
-            case 2:
-                // Manipulados tab
-                manipuladosNavigator.route(URL(string: "\(App.baseURL)/compounds_plans")!)
-                // Ensure navigation bar is hidden
-                DispatchQueue.main.async {
-                    self.manipuladosNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
-                }
-            case 3:
-                // Evolucao tab
-                evolucaoNavigator.route(URL(string: "\(App.baseURL)/anthropometric_assessments/comparison")!)
-                // Ensure navigation bar is hidden
-                DispatchQueue.main.async {
-                    self.evolucaoNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
-                }
-            case 4:
-                // Profile tab
-                profileNavigator.route(URL(string: "\(App.baseURL)/settings/profile")!)
-                // Ensure navigation bar is hidden
-                DispatchQueue.main.async {
-                    self.profileNavigator.rootViewController.setNavigationBarHidden(true, animated: false)
-                }
-            default:
-                break
-            }
-        } else if currentRole == "coach" {
-            // Handle coach tab navigation
-            switch viewController.tabBarItem.tag {
-            case 0:
-                // Clients tab
-                clientsNavigator.route(URL(string: "\(App.baseURL)/clients")!)
-            case 1:
-                // Exercises tab
-                exercisesNavigator.route(URL(string: "\(App.baseURL)/exercises")!)
-            case 2:
-                // Profile tab
-                coachProfileNavigator.route(URL(string: "\(App.baseURL)/settings/profile")!)
-            default:
-                break
             }
         }
         return true
+    }
+    
+    private func navigatorForTabId(_ tabId: String) -> Navigator? {
+        switch tabId {
+        case "clients":
+            return clientsNavigator
+        case "exercises":
+            return exercisesNavigator
+        case "profile":
+            return currentRole == "coach" ? coachProfileNavigator : profileNavigator
+        case "treino":
+            return treinoNavigator
+        case "dieta":
+            return dietaNavigator
+        case "manipulados":
+            return manipuladosNavigator
+        case "evolucao":
+            return evolucaoNavigator
+        default:
+            return nil
+        }
     }
 }
