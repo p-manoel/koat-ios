@@ -257,9 +257,9 @@ class TabBarController: UITabBarController {
     }
     
     private func updateTabBarVisibility(for url: URL) {
-        // List of paths where tab bar should be hidden (auth and subscription pages)
-        let authPaths = ["/session/new", "/registration/new", "/password/new", "/password/edit", "/subscriptions/select_plan", "/clients/subscriptions", "/clients/subscriptions/new"]
-        let shouldHideTabBar = authPaths.contains(url.path)
+        // Get hide_tab_bar property from path configuration (controlled by Rails)
+        let properties = Hotwire.config.pathConfiguration.properties(for: url)
+        let shouldHideTabBar = properties["hide_tab_bar"] as? Bool ?? false
 
         #if DEBUG
         print("TabBarController - updateTabBarVisibility - URL: \(url.path) - Should hide: \(shouldHideTabBar)")
@@ -269,7 +269,8 @@ class TabBarController: UITabBarController {
             tabBar.isHidden = true
             // Hide navigation bar for all navigators
             hideAllNavigationBars()
-        } else {
+        } else if currentRole != nil {
+            // Only show tab bar if user has a role
             tabBar.isHidden = false
             // Update selected tab based on current URL
             updateSelectedTab(for: url)
@@ -379,15 +380,19 @@ extension TabBarController: NavigatorDelegate {
             DispatchQueue.main.async {
                 self.tabBar.isHidden = true
             }
-        } else if (currentURL?.path == "/subscriptions/select_plan" || currentURL?.path == "/clients/subscriptions" || currentURL?.path == "/clients/subscriptions/new") && 
-                   (proposal.url.path != "/subscriptions/select_plan" && proposal.url.path != "/clients/subscriptions" && proposal.url.path != "/clients/subscriptions/new") {
-            // Navigating away from a page that had hide_tab_bar - show tab bar again if we have a role
-            if currentRole != nil {
-                #if DEBUG
-                print("TabBarController - Showing tab bar when navigating away from subscription page")
-                #endif
-                DispatchQueue.main.async {
-                    self.tabBar.isHidden = false
+        } else {
+            // Check if navigating away from a page that had hide_tab_bar
+            if let prevURL = currentURL {
+                let prevProperties = Hotwire.config.pathConfiguration.properties(for: prevURL)
+                let prevHideTabBar = prevProperties["hide_tab_bar"] as? Bool ?? false
+                
+                if prevHideTabBar && currentRole != nil {
+                    #if DEBUG
+                    print("TabBarController - Showing tab bar when navigating away from hidden tab bar page")
+                    #endif
+                    DispatchQueue.main.async {
+                        self.tabBar.isHidden = false
+                    }
                 }
             }
         }
@@ -501,16 +506,17 @@ extension TabBarController: NavigatorDelegate {
             return
         }
 
-        // Check if we've navigated to subscription page - hide tab bar
+        // Check path configuration for hide_tab_bar property
         if let visitable = getCurrentVisitable() {
-            let currentPath = visitable.currentVisitableURL.path
+            let url = visitable.currentVisitableURL
             #if DEBUG
-            print("TabBarController - navigatorDidFinishNavigation - Path: \(currentPath)")
+            print("TabBarController - navigatorDidFinishNavigation - Path: \(url.path)")
             #endif
 
-            if currentPath == "/subscriptions/select_plan" {
+            let properties = Hotwire.config.pathConfiguration.properties(for: url)
+            if let hideTabBar = properties["hide_tab_bar"] as? Bool, hideTabBar {
                 #if DEBUG
-                print("TabBarController - Hiding tab bar for subscription page")
+                print("TabBarController - Hiding tab bar due to hide_tab_bar property")
                 #endif
                 DispatchQueue.main.async {
                     self.tabBar.isHidden = true
