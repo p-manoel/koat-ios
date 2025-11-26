@@ -22,36 +22,71 @@ final class App {
     
     private let rootURL = URL(string: baseURL)!
     
-    lazy var tabBarController = TabBarController(app: self)
+    // Store the tab bar controller - will be recreated for each session
+    private var _tabBarController: TabBarController?
+    
+    var tabBarController: TabBarController {
+        if let existing = _tabBarController {
+            return existing
+        }
+        let controller = TabBarController(app: self)
+        _tabBarController = controller
+        return controller
+    }
+    
+    /// Create a fresh TabBarController for a new session
+    private func createNewTabBarController() -> TabBarController {
+        _tabBarController?.clearNavigators()
+        let controller = TabBarController(app: self)
+        _tabBarController = controller
+        return controller
+    }
     
     var rootViewController: UIViewController {
-        // Return the navigator's root view controller directly
-        // The TabBarController will be set up when a role is detected
         navigator.rootViewController
     }
     
     weak var sceneDelegate: SceneDelegate?
     
+    /// Timer for periodic role checking
+    private var roleCheckTimer: Timer?
+    
     private init() {
-        // Configure Hotwire before creating navigator
         configureHotwire()
     }
     
     func start() {
-        // Navigation bar visibility is now handled by AppWebViewController
-        // based on path configuration
-        
-        // Start navigation - the server will redirect to login if not authenticated
         navigator.route(rootURL)
+        startRoleCheckTimer()
+    }
+    
+    /// Start periodic role checking - used when we're on the main navigator waiting for login
+    private func startRoleCheckTimer() {
+        roleCheckTimer?.invalidate()
         
-        // Start monitoring for role after initial navigation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.checkForRoleAndSwitchIfNeeded()
+        roleCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            
+            if self.sceneDelegate?.window?.rootViewController is TabBarController {
+                timer.invalidate()
+                self.roleCheckTimer = nil
+                return
+            }
+            
+            self.checkForRoleAndSwitchIfNeeded()
         }
     }
     
+    /// Stop the role check timer
+    private func stopRoleCheckTimer() {
+        roleCheckTimer?.invalidate()
+        roleCheckTimer = nil
+    }
+    
     func verifySession() {
-        // Check if we have a session cookie
         let dataStore = WKWebsiteDataStore.default()
         dataStore.httpCookieStore.getAllCookies { [weak self] cookies in
             let hasSessionCookie = cookies.contains { cookie in
@@ -59,7 +94,6 @@ final class App {
             }
             
             if hasSessionCookie {
-                // Make a simple request to check if session is still valid
                 guard let verifyURL = URL(string: "\(App.baseURL)/") else { return }
                 var request = URLRequest(url: verifyURL)
                 request.setValue("XMLHttpRequest", forHTTPHeaderField: "X-Requested-With")
@@ -70,7 +104,6 @@ final class App {
                 URLSession.shared.dataTask(with: request) { data, response, error in
                     DispatchQueue.main.async {
                         if let httpResponse = response as? HTTPURLResponse {
-                            // If we get redirected to login, the session is invalid
                             if httpResponse.statusCode == 302 || httpResponse.statusCode == 401 {
                                 self?.performLogout()
                             }
@@ -84,7 +117,6 @@ final class App {
     // MARK: - Navigation
     
     lazy var navigator: Navigator = {
-        // Create and return the main navigator
         let config = Navigator.Configuration(name: "main", startLocation: rootURL)
         let nav = Navigator(configuration: config)
         nav.delegate = self
@@ -94,11 +126,9 @@ final class App {
     // MARK: - Configuration
     
     private func configureHotwire() {
-        // Configure navigation bar appearance
         UINavigationBar.appearance().prefersLargeTitles = false
         UINavigationBar.appearance().tintColor = .systemBlue
         
-        // Register bridge components
         Hotwire.registerBridgeComponents([
             ButtonComponent.self,
             RoleComponent.self
@@ -110,20 +140,16 @@ final class App {
 
 extension App: NavigatorDelegate {
     func handle(proposal: VisitProposal) -> ProposalResult {
-        // Check if navigating to login page while TabBarController is active
         if proposal.url.path == "/session/new" {
-            // If TabBarController is the root, this is a logout scenario
             if sceneDelegate?.window?.rootViewController is TabBarController {
                 performLogout()
-                return .reject // Reject this proposal as performLogout will handle navigation
+                return .reject
             }
 
-            // Otherwise just hide navigation bar for login page
             DispatchQueue.main.async { [weak self] in
                 self?.navigator.rootViewController.setNavigationBarHidden(true, animated: false)
             }
         } else {
-            // For all non-login pages, check for role after a delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.checkForRoleAndSwitchIfNeeded()
             }
@@ -133,12 +159,10 @@ extension App: NavigatorDelegate {
     }
 
     func visitableDidRender() {
-        // Only check for role if we're using the main navigator (not TabBarController)
         guard sceneDelegate?.window?.rootViewController == navigator.rootViewController else {
             return
         }
         
-        // Check current URL and hide navigation bar for login page
         if let visitable = navigator.rootViewController.visibleViewController as? VisitableViewController {
             if visitable.currentVisitableURL.path == "/session/new" {
                 navigator.rootViewController.setNavigationBarHidden(true, animated: false)
@@ -150,7 +174,6 @@ extension App: NavigatorDelegate {
     }
     
     func navigatorDidFinishNavigation(_ navigator: Navigator) {
-        // Only check for role if we're using the main navigator (not TabBarController)
         guard sceneDelegate?.window?.rootViewController == navigator.rootViewController else {
             return
         }
@@ -159,20 +182,16 @@ extension App: NavigatorDelegate {
     }
     
     private func checkForRoleAndSwitchIfNeeded() {
-        // Don't check if we've already switched to tab bar
         guard sceneDelegate?.window?.rootViewController == navigator.rootViewController else {
             return
         }
         
-        // Try to get role from the page
         let navController = navigator.rootViewController
         guard let visitable = navController.visibleViewController as? VisitableViewController else {
             return
         }
         
-        // Wait for webView to be available
         guard let webView = visitable.visitableView.webView else {
-            // Retry after a short delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
                 self?.checkForRoleAndSwitchIfNeeded()
             }
@@ -188,16 +207,14 @@ extension App: NavigatorDelegate {
                 return null;
             })()
         """) { [weak self] result, error in
-            if let error = error {
+            if error != nil {
                 return
             }
             
             if let role = result as? String, !role.isEmpty && role != "none" {
                 self?.switchToTabBarController(with: role)
             } else {
-                // Retry after a short delay if no role found yet
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    // Only retry if we haven't switched yet
                     if self?.sceneDelegate?.window?.rootViewController == self?.navigator.rootViewController {
                         self?.checkForRoleAndSwitchIfNeeded()
                     }
@@ -207,29 +224,23 @@ extension App: NavigatorDelegate {
     }
     
     private func switchToTabBarController(with role: String) {
-        // Fetch tab configuration from server
+        stopRoleCheckTimer()
+        
         fetchTabConfiguration { [weak self] tabs in
             guard let self = self else { return }
             
             DispatchQueue.main.async {
                 guard let tabs = tabs, !tabs.isEmpty else {
-                    #if DEBUG
-                    print("App - Failed to fetch tab configuration, retrying...")
-                    #endif
-                    // Retry after a short delay
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         self.switchToTabBarController(with: role)
                     }
                     return
                 }
                 
-                // Use server-provided tab configuration
-                self.tabBarController.setupWithConfiguration(tabs, role: role, with: self.navigator)
+                let tabController = self.createNewTabBarController()
+                tabController.setupWithConfiguration(tabs, role: role, with: self.navigator)
+                self.sceneDelegate?.window?.rootViewController = tabController
                 
-                // Switch the root view controller
-                self.sceneDelegate?.window?.rootViewController = self.tabBarController
-                
-                // Animate the transition
                 if let window = self.sceneDelegate?.window {
                     UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
                 }
@@ -243,35 +254,24 @@ extension App: NavigatorDelegate {
             return
         }
         
-        // Get cookies from WKWebsiteDataStore for authentication
         let dataStore = WKWebsiteDataStore.default()
         dataStore.httpCookieStore.getAllCookies { cookies in
             var request = URLRequest(url: url)
             request.setValue("application/json", forHTTPHeaderField: "Accept")
             
-            // Add cookies to request for authentication
             let cookieHeader = cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
             request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
             
             URLSession.shared.dataTask(with: request) { data, response, error in
                 guard let data = data, error == nil else {
-                    #if DEBUG
-                    print("App - Failed to fetch tab configuration: \(error?.localizedDescription ?? "Unknown error")")
-                    #endif
                     completion(nil)
                     return
                 }
                 
                 do {
                     let tabs = try JSONDecoder().decode([TabConfiguration].self, from: data)
-                    #if DEBUG
-                    print("App - Fetched \(tabs.count) tabs from server")
-                    #endif
                     completion(tabs)
                 } catch {
-                    #if DEBUG
-                    print("App - Failed to decode tab configuration: \(error)")
-                    #endif
                     completion(nil)
                 }
             }.resume()
@@ -283,7 +283,6 @@ extension App: NavigatorDelegate {
 
 extension App {
     func performLogout() {
-        // Clear all website data including cookies
         let dataStore = WKWebsiteDataStore.default()
         let websiteDataTypes = Set([
             WKWebsiteDataTypeCookies,
@@ -297,20 +296,17 @@ extension App {
         
         dataStore.removeData(ofTypes: websiteDataTypes,
                            modifiedSince: Date(timeIntervalSince1970: 0)) { [weak self] in
-            // Clear cookies from HTTPCookieStorage as well
             if let cookies = HTTPCookieStorage.shared.cookies {
                 for cookie in cookies {
                     HTTPCookieStorage.shared.deleteCookie(cookie)
                 }
             }
             
-            // Clear stored user role
             UserDefaults.standard.removeObject(forKey: "userRole")
             UserDefaults.standard.removeObject(forKey: "userId")
             UserDefaults.standard.removeObject(forKey: "userName")
             UserDefaults.standard.synchronize()
             
-            // Perform cleanup and navigate to login
             DispatchQueue.main.async {
                 self?.cleanupAfterLogout()
             }
@@ -320,7 +316,6 @@ extension App {
     @objc private func handleRoleChange(_ notification: Notification) {
         if let userInfo = notification.userInfo,
            let role = userInfo["role"] as? String {
-            // Check if we need to switch to tab bar
             if sceneDelegate?.window?.rootViewController == navigator.rootViewController {
                 switchToTabBarController(with: role)
             }
@@ -328,34 +323,28 @@ extension App {
     }
     
     private func cleanupAfterLogout() {
-        // Reset tab bar controller completely
-        tabBarController.currentRole = nil
-        tabBarController.tabBar.isHidden = true
-        tabBarController.viewControllers = []
-        // Clear all navigators
-        tabBarController.clientsNavigator = nil
-        tabBarController.exercisesNavigator = nil
-        tabBarController.coachProfileNavigator = nil
-        tabBarController.treinoNavigator = nil
-        tabBarController.profileNavigator = nil
+        stopRoleCheckTimer()
         
-        // Create a new navigator for clean state pointing to login page
+        if let oldTabController = _tabBarController {
+            oldTabController.currentRole = nil
+            oldTabController.tabBar.isHidden = true
+            oldTabController.viewControllers = []
+            oldTabController.clearNavigators()
+        }
+        _tabBarController = nil
+        
         let loginURL = URL(string: "\(App.baseURL)/session/new")!
         let config = Navigator.Configuration(name: "main", startLocation: loginURL)
         navigator = Navigator(configuration: config)
         navigator.delegate = self
         
-        // Navigation bar visibility is handled by AppWebViewController
-        
-        // Switch back to navigator as root
         sceneDelegate?.window?.rootViewController = navigator.rootViewController
         
-        // Animate the transition
         if let window = sceneDelegate?.window {
             UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
         }
         
-        // Navigate to login page
         navigator.route(loginURL)
+        startRoleCheckTimer()
     }
 }
