@@ -155,6 +155,25 @@ class TabBarController: UITabBarController {
         return navigators[tabId]
     }
     
+    /// Navigate to a specific URL (used for deep links from push notifications)
+    func navigateToURL(_ url: URL) {
+        // First, find which tab this URL belongs to
+        if let index = tabIndex(forPath: url.path), index < tabConfigurations.count {
+            let tabId = tabConfigurations[index].id
+            
+            // Switch to the correct tab
+            selectedIndex = index
+            
+            // Navigate within that tab's navigator
+            if let navigator = navigators[tabId] {
+                navigator.route(url)
+            }
+        } else if let navigator = currentNavigator() {
+            // Fallback: navigate in current tab
+            navigator.route(url)
+        }
+    }
+    
     private func tabIndex(forPath path: String) -> Int? {
         for (index, tab) in tabConfigurations.enumerated() {
             if tab.path == "/" {

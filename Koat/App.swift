@@ -241,6 +241,9 @@ extension App: NavigatorDelegate {
                 tabController.setupWithConfiguration(tabs, role: role, with: self.navigator)
                 self.sceneDelegate?.window?.rootViewController = tabController
                 
+                // Re-register push token after successful login
+                PushNotificationManager.shared.refreshTokenRegistration()
+                
                 if let window = self.sceneDelegate?.window {
                     UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
                 }
@@ -275,6 +278,33 @@ extension App: NavigatorDelegate {
                     completion(nil)
                 }
             }.resume()
+        }
+    }
+}
+
+// MARK: - Deep Linking
+
+extension App {
+    /// Handle deep link from push notification
+    func handleDeepLink(path: String) {
+        // Construct full URL from path
+        guard let url = URL(string: "\(App.baseURL)\(path)") else {
+            print("[DeepLink] Invalid path: \(path)")
+            return
+        }
+        
+        print("[DeepLink] Navigating to: \(url)")
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // If we have a TabBarController, navigate within it
+            if let tabController = self.sceneDelegate?.window?.rootViewController as? TabBarController {
+                tabController.navigateToURL(url)
+            } else {
+                // Otherwise use the main navigator
+                self.navigator.route(url)
+            }
         }
     }
 }
