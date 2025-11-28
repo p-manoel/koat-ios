@@ -214,11 +214,12 @@
 				};
 			};
 			buildConfigurationList = 39E568E82DA7761D0083298D /* Build configuration list for PBXProject "Koat" */;
-			developmentRegion = en;
+			developmentRegion = "pt-BR";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				"pt-BR",
 			);
 			mainGroup = 39E568E42DA7761D0083298D;
 			minimizedProjectReferenceProxies = 1;
@@ -307,7 +308,6 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Koat/Koat.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 35JBVN43Q7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Koat/Info.plist;
@@ -325,7 +325,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.1;
+				MARKETING_VERSION = 1.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = Koat.Koat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -346,7 +346,6 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Koat/Koat.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 35JBVN43Q7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Koat/Info.plist;
@@ -364,7 +363,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.1;
+				MARKETING_VERSION = 1.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = Koat.Koat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -382,6 +381,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -446,6 +446,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
