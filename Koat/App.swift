@@ -244,6 +244,9 @@ extension App: NavigatorDelegate {
                 // Re-register push token after successful login
                 PushNotificationManager.shared.refreshTokenRegistration()
                 
+                // Process any pending deep link from notification
+                self.processPendingDeepLink()
+                
                 if let window = self.sceneDelegate?.window {
                     UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
                 }
@@ -285,6 +288,9 @@ extension App: NavigatorDelegate {
 // MARK: - Deep Linking
 
 extension App {
+    /// Pending deep link URL to navigate to after app is ready
+    private static var pendingDeepLinkURL: URL?
+    
     /// Handle deep link from push notification
     func handleDeepLink(path: String) {
         // Construct full URL from path
@@ -298,12 +304,35 @@ extension App {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
-            // If we have a TabBarController, navigate within it
+            // If we have a TabBarController, navigate within it immediately
             if let tabController = self.sceneDelegate?.window?.rootViewController as? TabBarController {
                 tabController.navigateToURL(url)
             } else {
-                // Otherwise use the main navigator
-                self.navigator.route(url)
+                // App not ready yet - store the URL and wait
+                print("[DeepLink] App not ready, queuing URL for later")
+                App.pendingDeepLinkURL = url
+                
+                // Try again after a delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                    self?.processPendingDeepLink()
+                }
+            }
+        }
+    }
+    
+    /// Process any pending deep link after app is ready
+    func processPendingDeepLink() {
+        guard let url = App.pendingDeepLinkURL else { return }
+        
+        if let tabController = sceneDelegate?.window?.rootViewController as? TabBarController {
+            print("[DeepLink] Processing pending URL: \(url)")
+            App.pendingDeepLinkURL = nil
+            tabController.navigateToURL(url)
+        } else {
+            // Still not ready, try again
+            print("[DeepLink] Still waiting for TabBarController...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.processPendingDeepLink()
             }
         }
     }
