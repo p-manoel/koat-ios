@@ -77,6 +77,14 @@ class PDFDownloadHandler: NSObject {
                 activityItems: [fileURL],
                 applicationActivities: nil
             )
+            
+            // Exclude activities that don't make sense for PDFs
+            activityViewController.excludedActivityTypes = [
+                .assignToContact,
+                .addToReadingList,
+                .postToFlickr,
+                .postToVimeo
+            ]
 
             // Configure for iPad
             if let popover = activityViewController.popoverPresentationController {
@@ -84,14 +92,18 @@ class PDFDownloadHandler: NSObject {
                 popover.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0, height: 0)
                 popover.permittedArrowDirections = []
             }
-
-            // Present the share sheet
-            self.presentingViewController?.present(activityViewController, animated: true) {
-                // Clean up temporary file after sharing
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    try? FileManager.default.removeItem(at: fileURL)
+            
+            // Handle completion - clean up file after successful share
+            activityViewController.completionWithItemsHandler = { _, completed, _, _ in
+                if completed {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        try? FileManager.default.removeItem(at: fileURL)
+                    }
                 }
             }
+
+            // Present the share sheet
+            self.presentingViewController?.present(activityViewController, animated: true)
         }
     }
 
@@ -117,12 +129,21 @@ extension PDFDownloadHandler: URLSessionDownloadDelegate {
                 fileName = suggestedFilename
             } else if let url = downloadTask.originalRequest?.url,
                       let lastPathComponent = url.pathComponents.last {
-                // Extract filename from URL path
-                fileName = lastPathComponent.replacingOccurrences(of: "-", with: "_") + ".pdf"
+                // Extract filename from URL path (remove .pdf if present to avoid duplication)
+                var baseName = lastPathComponent.replacingOccurrences(of: "-", with: "_")
+                if baseName.lowercased().hasSuffix(".pdf") {
+                    baseName = String(baseName.dropLast(4))
+                }
+                fileName = baseName + ".pdf"
+            }
+            
+            // Ensure filename always ends with .pdf extension (defensive check)
+            if !fileName.lowercased().hasSuffix(".pdf") {
+                fileName = fileName + ".pdf"
             }
 
-            // Create a temporary directory to save the file
-            let documentsPath = FileManager.default.temporaryDirectory
+            // Save to Documents directory (required for Files app saving to work)
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             let destinationURL = documentsPath.appendingPathComponent(fileName)
 
             // Remove existing file if it exists
