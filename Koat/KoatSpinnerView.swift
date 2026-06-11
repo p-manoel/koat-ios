@@ -2,21 +2,26 @@
 //  KoatSpinnerView.swift
 //  Koat
 //
-//  Native twin of the web app's standard loading spinner (the Tailwind
-//  `animate-spin` ring: 25%-opacity full circle + 75%-opacity quarter arc
-//  in Koat blue), shown while a screen's visit is loading.
+//  Branded loading indicator: the Koat "K" logo with the web app's standard
+//  loading ring spinning around it (the Tailwind `animate-spin` ring:
+//  25%-opacity full circle + 75%-opacity quarter arc in Koat blue).
 //
 
 import UIKit
 
 final class KoatSpinnerView: UIView {
-    private static let size: CGFloat = 28
+    private static let size: CGFloat = 64
     private static let lineWidth: CGFloat = 4
+    private static let logoSize: CGFloat = 32
     // Tailwind blue-600, the brand color used across the web app.
     private static let brandBlue = UIColor(red: 37 / 255, green: 99 / 255, blue: 235 / 255, alpha: 1)
 
+    // Ring + arc live in their own rotor layer so the rotation animation
+    // spins only the ring, leaving the centered logo still.
+    private let rotorLayer = CALayer()
     private let ringLayer = CAShapeLayer()
     private let arcLayer = CAShapeLayer()
+    private let logoView = UIImageView(image: UIImage(named: "KoatLogo"))
 
     private(set) var isAnimating = false
 
@@ -26,14 +31,18 @@ final class KoatSpinnerView: UIView {
         isUserInteractionEnabled = false
         isHidden = true
 
+        layer.addSublayer(rotorLayer)
         for (shapeLayer, opacity) in [(ringLayer, Float(0.25)), (arcLayer, Float(0.75))] {
             shapeLayer.fillColor = UIColor.clear.cgColor
             shapeLayer.strokeColor = Self.brandBlue.cgColor
             shapeLayer.lineWidth = Self.lineWidth
             shapeLayer.opacity = opacity
-            layer.addSublayer(shapeLayer)
+            rotorLayer.addSublayer(shapeLayer)
         }
         arcLayer.strokeEnd = 0.25
+
+        logoView.contentMode = .scaleAspectFit
+        addSubview(logoView)
     }
 
     required init?(coder: NSCoder) {
@@ -46,6 +55,8 @@ final class KoatSpinnerView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        rotorLayer.frame = bounds
+
         let path = UIBezierPath(
             arcCenter: CGPoint(x: bounds.midX, y: bounds.midY),
             radius: (Self.size - Self.lineWidth) / 2,
@@ -54,9 +65,16 @@ final class KoatSpinnerView: UIView {
             clockwise: true
         )
         for shapeLayer in [ringLayer, arcLayer] {
-            shapeLayer.frame = bounds
+            shapeLayer.frame = rotorLayer.bounds
             shapeLayer.path = path.cgPath
         }
+
+        logoView.frame = CGRect(
+            x: bounds.midX - Self.logoSize / 2,
+            y: bounds.midY - Self.logoSize / 2,
+            width: Self.logoSize,
+            height: Self.logoSize
+        )
     }
 
     // Core Animation drops animations whenever the view leaves the window
@@ -77,17 +95,17 @@ final class KoatSpinnerView: UIView {
     func stopAnimating() {
         isAnimating = false
         isHidden = true
-        layer.removeAnimation(forKey: "rotation")
+        rotorLayer.removeAnimation(forKey: "rotation")
     }
 
     private func addRotation() {
-        guard layer.animation(forKey: "rotation") == nil else { return }
+        guard rotorLayer.animation(forKey: "rotation") == nil else { return }
 
         let rotation = CABasicAnimation(keyPath: "transform.rotation.z")
         rotation.fromValue = 0
         rotation.toValue = 2 * Double.pi
         rotation.duration = 1
         rotation.repeatCount = .infinity
-        layer.add(rotation, forKey: "rotation")
+        rotorLayer.add(rotation, forKey: "rotation")
     }
 }
