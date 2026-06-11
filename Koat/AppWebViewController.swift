@@ -11,6 +11,28 @@ import WebKit
 
 final class AppWebViewController: HotwireWebViewController {
     private var pdfExportHandler: PDFExportHandler?
+    private lazy var koatSpinner = KoatSpinnerView()
+
+    // Replace the default gray UIActivityIndicatorView with the Koat-branded
+    // spinner. Not calling super keeps the default indicator stopped (it is
+    // hidesWhenStopped) so only ours ever shows.
+    override func showVisitableActivityIndicator() {
+        guard !visitableView.isRefreshing else { return }
+
+        if koatSpinner.superview == nil {
+            visitableView.addSubview(koatSpinner)
+            NSLayoutConstraint.activate([
+                koatSpinner.centerXAnchor.constraint(equalTo: visitableView.centerXAnchor),
+                koatSpinner.centerYAnchor.constraint(equalTo: visitableView.centerYAnchor)
+            ])
+        }
+        koatSpinner.startAnimating()
+        visitableView.bringSubviewToFront(koatSpinner)
+    }
+
+    override func hideVisitableActivityIndicator() {
+        koatSpinner.stopAnimating()
+    }
 
     // Backstop: the bar is already hidden by ChromelessNavigationController,
     // but never allow anything to re-show it.
