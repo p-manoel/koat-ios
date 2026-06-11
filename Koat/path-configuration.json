@@ -1,249 +1,29 @@
 {
-  "settings": {
-    "pull_to_refresh_enabled": true
-  },
+  "settings": {},
   "rules": [
     {
-      "patterns": ["^/$"],
-      "properties": {
-        "view_controller": "treino",
-        "pull_to_refresh_enabled": true,
-        "presentation": "replace",
-        "navigation_bar_hidden": true
-      }
-    },
-    {
-      "patterns": ["^/workout_plans/[0-9]+$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "push",
-        "navigation_bar_hidden": true
-      }
-    },
-    {
-      "patterns": ["^/workout_plans/[0-9]+/routines/[0-9]+$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/workout_plans/[0-9]+/routines/[0-9]+/routine_exercises/[0-9]+$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/session/new$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "replace",
-        "navigation_bar_hidden": true
-      }
-    },
-    {
-      "patterns": ["^/registration/new$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/session$"],
-      "properties": {
-        "view_controller": "logout"
-      }
-    },
-    {
-      "patterns": ["^/clients$"],
-      "properties": {
-        "view_controller": "clients",
-        "pull_to_refresh_enabled": true,
-        "presentation": "replace",
-        "navigation_bar_hidden": true
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "push"
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/workout_plans/new$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/workout_plans/[0-9]+/edit$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/meal_plans/new$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/meal_plans/[0-9]+/edit$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/meal_plans/[0-9]+$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/workout_plans/[0-9]+/routines/[0-9]+/edit$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/meal_plans/[0-9]+/edit$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/workout_plans/[0-9]+/edit$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/new$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/[0-9]+/edit$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/[0-9]+$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/select$"],
-      "properties": {
-        "pull_to_refresh_enabled": false,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/clients/[0-9]+/anthropometric_assessments/comparison$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "push",
-        "navigation_bar_hidden": false
-      }
-    },
-    {
-      "patterns": ["^/exercises$"],
-      "properties": {
-        "view_controller": "exercises",
-        "pull_to_refresh_enabled": true,
-        "presentation": "replace",
-        "navigation_bar_hidden": true
-      }
-    },
-    {
-      "patterns": ["^/exercises/[0-9]+$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "push"
-      }
-    },
-    {
-      "patterns": ["^/meal_plans$"],
-      "properties": {
-        "view_controller": "dieta",
-        "pull_to_refresh_enabled": true,
-        "presentation": "replace",
-        "navigation_bar_hidden": true
-      }
-    },
-    {
-      "patterns": ["^/anthropometric_assessments/comparison$"],
-      "properties": {
-        "view_controller": "evolucao",
-        "pull_to_refresh_enabled": true,
-        "presentation": "replace",
-        "navigation_bar_hidden": true
-      }
-    },
-    {
-      "patterns": ["^/anthropometric_assessments$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "replace",
-        "navigation_bar_hidden": true
-      }
-    },
-    {
-      "patterns": ["^/settings/profile$"],
-      "properties": {
-        "pull_to_refresh_enabled": true,
-        "presentation": "replace",
-        "navigation_bar_hidden": true
-      }
-    },
-    {
       "patterns": [
-        "^/exercises/new$",
-        "^/exercises/[0-9]+/edit$",
-        "^/clients/new$",
-        "^/workout_plans/new$",
-        "^/routines/new$",
-        "^/routines/[0-9]+/edit$",
-        "^/meal_plans/new$",
-        "^/anthropometric_assessments/new$",
-        "^/anthropometric_assessments/[0-9]+/edit$",
-        "^/settings/profile/edit$"
+        "^/$",
+        "^/clients$",
+        "^/conversations$",
+        "^/exercises$",
+        "^/meal_plans$",
+        "^/compounds_plans$",
+        "^/anthropometric_assessments$",
+        "^/anthropometric_assessments/comparison$",
+        "^/settings$",
+        "^/settings/profile$"
       ],
       "properties": {
-        "context": "modal",
-        "pull_to_refresh_enabled": false
+        "presentation": "replace"
+      }
+    },
+    {
+      "patterns": ["^/session/new(\\?.*)?$"],
+      "properties": {
+        "presentation": "replace_root",
+        "pull_to_refresh_enabled": false,
+        "animated": false
       }
     }
   ]

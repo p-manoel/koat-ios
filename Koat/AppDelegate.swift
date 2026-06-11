@@ -89,89 +89,56 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     // MARK: - Hotwire Configuration
     
     private func configureHotwire() {
-        // Enable debug logging in development
         #if DEBUG
         Hotwire.config.debugLoggingEnabled = true
         #endif
-        
-        // Show done button on modals (for login dismissal)
-        Hotwire.config.showDoneButtonOnModals = true
-        
-        // Use custom WebViewController class for navigation bar handling
+
         Hotwire.config.defaultViewController = { url in
-            return AppWebViewController(url: url)
+            AppWebViewController(url: url)
         }
-        
-        // Configure navigation bar appearance
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithDefaultBackground()
-        
-        // Configure title appearance
-        appearance.titleTextAttributes = [
-            .foregroundColor: UIColor.label
-        ]
-        appearance.largeTitleTextAttributes = [
-            .foregroundColor: UIColor.label
-        ]
-        
-        UINavigationBar.appearance().standardAppearance = appearance
-        UINavigationBar.appearance().scrollEdgeAppearance = appearance
-        UINavigationBar.appearance().compactAppearance = appearance
-        UINavigationBar.appearance().prefersLargeTitles = false
-        
-        // Set up shared process pool for cookie sharing between web views
+
+        // All navigation stacks (main + modal) get a permanently hidden nav bar
+        // with swipe-back re-enabled.
+        Hotwire.config.defaultNavigationController = {
+            ChromelessNavigationController()
+        }
+
+        // Shared process pool for cookie sharing between web views
         let processPool = WKProcessPool()
-        
-        // Configure web view
+
         Hotwire.config.makeCustomWebView = { configuration in
-            configuration.applicationNameForUserAgent = "Koat iOS (Hotwire Native)"
+            // "Koat iOS" deliberately omits "Hotwire Native"/"Turbo Native" so
+            // Rails' hotwire_native_app? / turbo_native_app? return false and the
+            // app receives the full web chrome. The native library never reads
+            // the UA; Turbo integration is driven by an injected user script.
+            configuration.applicationNameForUserAgent = "Koat iOS"
             configuration.processPool = processPool
-            // Use the default persistent data store
             configuration.websiteDataStore = .default()
-            
-            // Configure video playback behavior
+
             configuration.allowsInlineMediaPlayback = true
             configuration.mediaTypesRequiringUserActionForPlayback = []
             configuration.allowsPictureInPictureMediaPlayback = false
-            
-            // Configure preferences for better video performance
-            // JavaScript is enabled by default in WKWebView
             configuration.preferences.isFraudulentWebsiteWarningEnabled = false
-            
-            // Allow air play for videos
             configuration.allowsAirPlayForMediaPlayback = true
-            
-            let webView = WKWebView(frame: CGRect.zero, configuration: configuration)
-            
+
+            let webView = WKWebView(frame: .zero, configuration: configuration)
+
+            // Edge-to-edge: let web content extend behind the status bar and home
+            // indicator. Rails handles safe areas via viewport-fit=cover + env().
+            webView.scrollView.contentInsetAdjustmentBehavior = .never
+
             #if DEBUG
-            // Enable web inspector for debugging
-            if webView.responds(to: Selector(("isInspectable"))) {
-                webView.perform(Selector(("setInspectable:")), with: true)
-            }
+            webView.isInspectable = true
             #endif
-            
+
             return webView
         }
-        
-        // Register bridge components
-        Hotwire.registerBridgeComponents([
-            ButtonComponent.self,
-            RoleComponent.self
-        ])
-        
-        // Load path configuration
-        loadPathConfiguration()
-    }
-    
-    private func loadPathConfiguration() {
+
+        // Local file only: a stale/forgotten server endpoint must not be able to
+        // re-introduce native modals or nav bars. To re-enable remote config later,
+        // append .server(URL(string: "\(App.baseURL)/hotwire/native/v1/ios/path_configuration")!).
         let localConfigURL = Bundle.main.url(forResource: "path-configuration", withExtension: "json")!
-        let remoteConfigURL = URL(string: "\(App.baseURL)/hotwire/native/v1/ios/path_configuration")!
-        
-        // Load with fallback - local file first, then server
-        Hotwire.loadPathConfiguration(from: [
-            .file(localConfigURL),
-            .server(remoteConfigURL)
-        ])
+        Hotwire.loadPathConfiguration(from: [.file(localConfigURL)])
     }
 
     // MARK: UISceneSession Lifecycle
