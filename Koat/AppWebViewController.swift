@@ -13,12 +13,43 @@ final class AppWebViewController: HotwireWebViewController {
     private var pdfExportHandler: PDFExportHandler?
     private lazy var koatSpinner = KoatSpinnerView()
 
+    // Keep the previous page on screen during forward visits instead of the
+    // framework's empty white cover (see ContinuityVisitableView).
+    private lazy var continuityView: ContinuityVisitableView = {
+        let view = ContinuityVisitableView(frame: .zero)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    override var visitableView: VisitableView { continuityView }
+
     // Replace the default gray UIActivityIndicatorView with the Koat-branded
     // spinner. Not calling super keeps the default indicator stopped (it is
     // hidesWhenStopped) so only ours ever shows.
-    override func showVisitableActivityIndicator() {
-        guard !visitableView.isRefreshing else { return }
+    //
+    // The spinner appears only after a grace period — the same 500ms web
+    // Turbo waits before showing its progress bar — so fast navigations
+    // stay spinner-free and only genuinely slow loads get the branded one.
+    private static let spinnerGracePeriod: TimeInterval = 0.5
+    private var pendingSpinner: DispatchWorkItem?
 
+    override func showVisitableActivityIndicator() {
+        guard !visitableView.isRefreshing, !koatSpinner.isAnimating, pendingSpinner == nil else { return }
+
+        let showSpinner = DispatchWorkItem { [weak self] in
+            self?.showKoatSpinner()
+        }
+        pendingSpinner = showSpinner
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.spinnerGracePeriod, execute: showSpinner)
+    }
+
+    override func hideVisitableActivityIndicator() {
+        pendingSpinner?.cancel()
+        pendingSpinner = nil
+        koatSpinner.stopAnimating()
+    }
+
+    private func showKoatSpinner() {
         if koatSpinner.superview == nil {
             visitableView.addSubview(koatSpinner)
             NSLayoutConstraint.activate([
@@ -28,10 +59,6 @@ final class AppWebViewController: HotwireWebViewController {
         }
         koatSpinner.startAnimating()
         visitableView.bringSubviewToFront(koatSpinner)
-    }
-
-    override func hideVisitableActivityIndicator() {
-        koatSpinner.stopAnimating()
     }
 
     // Backstop: the bar is already hidden by ChromelessNavigationController,
