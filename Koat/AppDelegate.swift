@@ -121,11 +121,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             configuration.preferences.isFraudulentWebsiteWarningEnabled = false
             configuration.allowsAirPlayForMediaPlayback = true
 
+            // Rails serves the no-zoom viewport only to hotwire_native_app?
+            // user agents, which this app deliberately is not, so unintended
+            // pinch-zoom is blocked here instead.
+            configuration.userContentController.addUserScript(viewportLockScript)
+
+            // Taps on external links leave the app via the system instead of
+            // Hotwire's in-app Safari sheet (see ExternalLinkHandler).
+            configuration.userContentController.addUserScript(ExternalLinkHandler.tapInterceptorScript)
+            configuration.userContentController.add(ExternalLinkHandler.shared, name: ExternalLinkHandler.messageName)
+
             let webView = WKWebView(frame: .zero, configuration: configuration)
 
             // Edge-to-edge: let web content extend behind the status bar and home
             // indicator. Rails handles safe areas via viewport-fit=cover + env().
             webView.scrollView.contentInsetAdjustmentBehavior = .never
+
+            // Session claims navigationDelegate; uiDelegate is ours. Without it,
+            // window.confirm (Turbo's data-turbo-confirm) silently returns false
+            // and target="_blank" links do nothing.
+            webView.uiDelegate = WebViewUIHandler.shared
+
+            AuthFlowObserver.observe(webView)
 
             #if DEBUG
             webView.isInspectable = true
@@ -153,5 +170,53 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // Called when the user discards a scene session.
         // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
+    }
+}
+
+// Appending to the served meta (instead of replacing it) keeps directives
+// like viewport-fit=cover that the Rails layout relies on for safe areas.
+private let viewportLockScript = WKUserScript(
+    source: """
+    (function() {
+      var meta = document.querySelector('meta[name="viewport"]');
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = "viewport";
+        meta.content = "width=device-width, initial-scale=1, viewport-fit=cover";
+        document.head.appendChild(meta);
+      }
+      var directives = meta.content.split(",").map(function(d) { return d.trim(); }).filter(function(d) {
+        return d && d.indexOf("maximum-scale") !== 0 && d.indexOf("user-scalable") !== 0;
+      });
+      directives.push("maximum-scale=1.0", "user-scalable=no");
+      meta.content = directives.join(", ");
+    })();
+    """,
+    injectionTime: .atDocumentEnd,
+    forMainFrameOnly: true
+)
+
+// Turbo form submissions are fetch + pushState and never reach the navigation
+// delegate, so formSubmissionDidFinish alone misses Google OAuth logins.
+// webView.url is KVO-compliant and changes on both full loads and pushState:
+// leaving the auth flow means a fresh session cookie, so (re-)register the
+// push token. The manager no-ops when logged out.
+private enum AuthFlowObserver {
+    private static var observations: [NSKeyValueObservation] = []
+
+    static func observe(_ webView: WKWebView) {
+        observations.append(webView.observe(\.url, options: [.old, .new]) { _, change in
+            guard let oldPath = (change.oldValue ?? nil)?.path,
+                  let newPath = (change.newValue ?? nil)?.path,
+                  oldPath != newPath else { return }
+            if isAuthFlowPath(oldPath) && !isAuthFlowPath(newPath) {
+                PushNotificationManager.shared.refreshTokenRegistration()
+            }
+        })
+    }
+
+    // Login, registration, and the OAuth redirect chain (/auth/...).
+    private static func isAuthFlowPath(_ path: String) -> Bool {
+        path == "/session/new" || path == "/registration/new" || path.hasPrefix("/auth/")
     }
 }

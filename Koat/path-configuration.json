@@ -15,7 +15,8 @@
         "^/settings/profile$"
       ],
       "properties": {
-        "presentation": "replace"
+        "presentation": "replace",
+        "animated": false
       }
     },
     {
