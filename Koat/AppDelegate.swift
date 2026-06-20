@@ -16,6 +16,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Configure Hotwire
         configureHotwire()
+
+        // Configure Google Sign-In (installs the shared GIDSignIn client config)
+        GoogleAuth.configure()
         
         // Configure push notifications
         configureNotifications(application)

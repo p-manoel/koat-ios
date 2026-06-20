@@ -22,6 +22,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         App.shared.start()
     }
 
+    // Google Sign-In returns through the app's reversed-client-id URL scheme;
+    // hand those callbacks to the SDK.
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        guard let url = URLContexts.first?.url else { return }
+        GoogleAuth.handle(url)
+    }
+
     func sceneDidBecomeActive(_ scene: UIScene) {
         // Clear badge when app becomes active
         UIApplication.shared.applicationIconBadgeNumber = 0
