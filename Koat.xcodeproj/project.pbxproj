@@ -616,7 +616,7 @@
 			repositoryURL = "https://github.com/hotwired/hotwire-native-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.1;
+				minimumVersion = 1.2.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

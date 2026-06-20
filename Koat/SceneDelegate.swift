@@ -25,12 +25,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidBecomeActive(_ scene: UIScene) {
         // Clear badge when app becomes active
         UIApplication.shared.applicationIconBadgeNumber = 0
-        // Recover web views whose content process was terminated in background
-        App.shared.navigator.appDidBecomeActive()
-    }
-
-    func sceneDidEnterBackground(_ scene: UIScene) {
-        App.shared.navigator.appDidEnterBackground()
+        // Web-view recovery and background tracking are handled automatically
+        // by Hotwire's AppLifecycleObserver as of 1.2.2.
     }
 
     func sceneWillEnterForeground(_ scene: UIScene) {
