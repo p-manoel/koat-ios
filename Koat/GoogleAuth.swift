@@ -54,7 +54,59 @@ enum GoogleAuth {
         }
     }
 
+    /// Exchange a Google ID token for a single-use Koat handoff token via the
+    /// backend (POST /api/oauth/google, PR #772). The handoff token is then
+    /// redeemed in the web view to establish the session cookie. The completion
+    /// is delivered on the main queue.
+    static func exchangeIDToken(_ idToken: String,
+                                completion: @escaping (Result<String, Swift.Error>) -> Void) {
+        let endpoint = URL(string: "\(App.baseURL)/api/oauth/google")!
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["id_token": idToken])
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            func finish(_ result: Result<String, Swift.Error>) {
+                DispatchQueue.main.async { completion(result) }
+            }
+
+            if let error {
+                finish(.failure(error))
+                return
+            }
+
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard status == 200, let data else {
+                finish(.failure(status == 409 ? Error.accountCollision
+                                              : Error.exchangeFailed(status: status)))
+                return
+            }
+
+            do {
+                let decoder = JSONDecoder()
+                decoder.keyDecodingStrategy = .convertFromSnakeCase
+                let payload = try decoder.decode(ExchangeResponse.self, from: data)
+                if payload.success, let token = payload.handoffToken {
+                    finish(.success(token))
+                } else {
+                    finish(.failure(Error.exchangeFailed(status: status)))
+                }
+            } catch {
+                finish(.failure(error))
+            }
+        }.resume()
+    }
+
+    private struct ExchangeResponse: Decodable {
+        let success: Bool
+        let handoffToken: String?
+    }
+
     enum Error: Swift.Error {
         case missingIDToken
+        case accountCollision
+        case exchangeFailed(status: Int)
     }
 }
