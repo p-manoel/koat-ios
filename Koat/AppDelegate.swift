@@ -13,9 +13,19 @@ import UserNotifications
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
+    /// Every Hotwire Native bridge component the app provides. Single source of
+    /// truth: registered at launch *and* advertised in the user agent, so the
+    /// web @hotwired/hotwire-native-bridge knows which components are supported.
+    private static let bridgeComponents: [BridgeComponent.Type] = [
+        GoogleSignInComponent.self
+    ]
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Configure Hotwire
         configureHotwire()
+
+        // Configure Google Sign-In (installs the shared GIDSignIn client config)
+        GoogleAuth.configure()
         
         // Configure push notifications
         configureNotifications(application)
@@ -93,6 +103,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         Hotwire.config.debugLoggingEnabled = true
         #endif
 
+        // Bridge components let the web drive native features.
+        Hotwire.registerBridgeComponents(Self.bridgeComponents)
+
         Hotwire.config.defaultViewController = { url in
             AppWebViewController(url: url)
         }
@@ -106,12 +119,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // Shared process pool for cookie sharing between web views
         let processPool = WKProcessPool()
 
+        // The web bridge discovers supported components by reading this list out
+        // of navigator.userAgent (see UA comment below).
+        let bridgeComponentNames = Self.bridgeComponents.map { $0.name }.joined(separator: " ")
+        let userAgent = "Koat iOS; bridge-components: [\(bridgeComponentNames)]"
+
         Hotwire.config.makeCustomWebView = { configuration in
             // "Koat iOS" deliberately omits "Hotwire Native"/"Turbo Native" so
             // Rails' hotwire_native_app? / turbo_native_app? return false and the
             // app receives the full web chrome. The native library never reads
             // the UA; Turbo integration is driven by an injected user script.
-            configuration.applicationNameForUserAgent = "Koat iOS"
+            //
+            // The "bridge-components: [...]" suffix is how the web
+            // @hotwired/hotwire-native-bridge learns which components this app
+            // supports and enables the matching Stimulus controller. It contains
+            // neither "Hotwire Native" nor "Turbo Native", so the chrome/viewport
+            // gating is unaffected. Hotwire normally appends this itself, but we
+            // replace the whole UA here, so we include it explicitly.
+            configuration.applicationNameForUserAgent = userAgent
             configuration.processPool = processPool
             configuration.websiteDataStore = .default()
 

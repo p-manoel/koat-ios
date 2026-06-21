@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		3936200C2E23F8FA00DAC615 /* HotwireNative in Frameworks */ = {isa = PBXBuildFile; productRef = 3936200B2E23F8FA00DAC615 /* HotwireNative */; };
+		A10000000000000000000001 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000002 /* GoogleSignIn */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +71,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3936200C2E23F8FA00DAC615 /* HotwireNative in Frameworks */,
+				A10000000000000000000001 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,6 +141,7 @@
 			name = Koat;
 			packageProductDependencies = (
 				3936200B2E23F8FA00DAC615 /* HotwireNative */,
+				A10000000000000000000002 /* GoogleSignIn */,
 			);
 			productName = Koat;
 			productReference = 39E568ED2DA7761D0083298D /* Koat.app */;
@@ -225,6 +228,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				393620012E23559400DAC615 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */,
+				A10000000000000000000003 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 39E568EE2DA7761D0083298D /* Products */;
@@ -619,6 +623,14 @@
 				minimumVersion = 1.2.2;
 			};
 		};
+		A10000000000000000000003 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -626,6 +638,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 393620012E23559400DAC615 /* XCRemoteSwiftPackageReference "hotwire-native-ios" */;
 			productName = HotwireNative;
+		};
+		A10000000000000000000002 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A10000000000000000000003 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
