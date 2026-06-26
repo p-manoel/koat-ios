@@ -17,7 +17,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     /// truth: registered at launch *and* advertised in the user agent, so the
     /// web @hotwired/hotwire-native-bridge knows which components are supported.
     private static let bridgeComponents: [BridgeComponent.Type] = [
-        GoogleSignInComponent.self
+        GoogleSignInComponent.self,
+        AppleSignInComponent.self
     ]
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
