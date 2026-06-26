@@ -17,7 +17,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     /// truth: registered at launch *and* advertised in the user agent, so the
     /// web @hotwired/hotwire-native-bridge knows which components are supported.
     private static let bridgeComponents: [BridgeComponent.Type] = [
-        GoogleSignInComponent.self
+        GoogleSignInComponent.self,
+        AppleSignInComponent.self
     ]
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
@@ -81,9 +82,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         let userInfo = response.notification.request.content.userInfo
         
         // Clear the badge when user taps notification
-        DispatchQueue.main.async {
-            UIApplication.shared.applicationIconBadgeNumber = 0
-        }
+        center.setBadgeCount(0)
         
         // Check for URL in the notification data
         if let data = userInfo["data"] as? [String: Any],
@@ -116,9 +115,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             ChromelessNavigationController()
         }
 
-        // Shared process pool for cookie sharing between web views
-        let processPool = WKProcessPool()
-
         // The web bridge discovers supported components by reading this list out
         // of navigator.userAgent (see UA comment below).
         let bridgeComponentNames = Self.bridgeComponents.map { $0.name }.joined(separator: " ")
@@ -137,7 +133,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             // gating is unaffected. Hotwire normally appends this itself, but we
             // replace the whole UA here, so we include it explicitly.
             configuration.applicationNameForUserAgent = userAgent
-            configuration.processPool = processPool
+            // Shared default data store handles cookie sharing across web views
+            // (process pools no longer have any effect as of iOS 15).
             configuration.websiteDataStore = .default()
 
             configuration.allowsInlineMediaPlayback = true
