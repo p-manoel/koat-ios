@@ -34,18 +34,26 @@ final class AppleSignInComponent: BridgeComponent {
     }
 
     private func startSignIn() {
-        guard let presenter = delegate?.destination as? UIViewController else { return }
+        guard let presenter = delegate?.destination as? UIViewController else {
+            // No destination to present from: re-enable the web button rather than
+            // leaving it stuck disabled after its `login` event.
+            finishOnWeb()
+            return
+        }
 
         AppleAuth.signIn(presenting: presenter) { [weak self] result in
             switch result {
             case .success(let credential):
                 self?.exchange(credential)
-            case .failure(let error):
-                // A user-cancelled sheet is normal; anything else is worth logging.
-                // Either way the web button just needs to be re-enabled.
-                if (error as? ASAuthorizationError)?.code != .canceled {
+            case .failure:
+                // A user-cancelled sheet is normal; anything else is worth logging
+                // in debug. Either way the web button just needs to be re-enabled.
+                #if DEBUG
+                if case .failure(let error) = result,
+                   (error as? ASAuthorizationError)?.code != .canceled {
                     print("[AppleSignIn] sign-in failed: \(error)")
                 }
+                #endif
                 self?.finishOnWeb()
             }
         }
@@ -57,8 +65,17 @@ final class AppleSignInComponent: BridgeComponent {
             case .success(let handoffToken):
                 self?.redeemSession(handoffToken: handoffToken)
             case .failure(let error):
-                print("[AppleSignIn] token exchange failed: \(error)")
-                self?.finishOnWeb()
+                // A 409 means this email already belongs to a Koat account created
+                // another way (Google, or Apple Hide-My-Email). Surface it to the web
+                // so the page can show a message; other failures just re-enable.
+                if let apple = error as? AppleAuth.Error, case .accountCollision = apple {
+                    self?.finishOnWeb(error: "account_collision")
+                } else {
+                    #if DEBUG
+                    print("[AppleSignIn] token exchange failed: \(error)")
+                    #endif
+                    self?.finishOnWeb()
+                }
             }
         }
     }
@@ -68,14 +85,37 @@ final class AppleSignInComponent: BridgeComponent {
     /// role selection (new user), replacing the login screen.
     private func redeemSession(handoffToken: String) {
         var components = URLComponents(string: "\(App.baseURL)/hotwire/native/session")
-        components?.queryItems = [URLQueryItem(name: "token", value: handoffToken)]
-        guard let url = components?.url else { return }
+        // Percent-encode the token but NOT `+`: URLComponents.queryItems leaves `+`
+        // literal in the query, and Rack decodes a literal `+` to a space, corrupting
+        // the single-use token so redemption misses and login silently dies. Encoding
+        // `+` as %2B makes it round-trip. No-op if the backend already mints url-safe
+        // tokens.
+        let allowed = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "+"))
+        components?.percentEncodedQueryItems = [
+            URLQueryItem(name: "token", value: handoffToken.addingPercentEncoding(withAllowedCharacters: allowed))
+        ]
+        guard let url = components?.url else {
+            // Couldn't build the redemption URL after a successful auth + exchange;
+            // re-enable the web button rather than leaving it stuck disabled.
+            finishOnWeb()
+            return
+        }
         App.shared.navigator.route(url, options: VisitOptions(action: .replace))
     }
 
-    /// Reply to the web so its Stimulus controller can re-enable the button when
-    /// the native flow ends without navigating (cancel or error).
-    private func finishOnWeb() {
-        reply(to: Event.login.rawValue)
+    /// Reply to the web so its Stimulus controller can re-enable the button when the
+    /// native flow ends without navigating (cancel or error). When `error` is set,
+    /// the reply carries it (jsonData `{"error": ...}`) so the web can show a message
+    /// (e.g. an account collision); the bare form just re-enables the button.
+    private func finishOnWeb(error: String? = nil) {
+        if let error {
+            reply(to: Event.login.rawValue, with: LoginReply(error: error))
+        } else {
+            reply(to: Event.login.rawValue)
+        }
+    }
+
+    private struct LoginReply: Encodable {
+        let error: String
     }
 }

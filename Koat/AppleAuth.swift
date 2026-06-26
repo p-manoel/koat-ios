@@ -84,10 +84,9 @@ enum AppleAuth {
     /// of entropy). The hashed form goes into the authorization request; the raw
     /// form is sent to the backend. Hex is URL/JSON-safe and bias-free — no
     /// mapping of bytes onto a character set whose size doesn't divide 256.
-    static func randomNonce(byteCount: Int = 32) -> String {
-        precondition(byteCount > 0)
-        var bytes = [UInt8](repeating: 0, count: byteCount)
-        let status = SecRandomCopyBytes(kSecRandomDefault, byteCount, &bytes)
+    static func randomNonce() -> String {
+        var bytes = [UInt8](repeating: 0, count: 32)
+        let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         precondition(status == errSecSuccess, "SecRandomCopyBytes failed: \(status)")
         return bytes.map { String(format: "%02x", $0) }.joined()
     }
@@ -109,13 +108,16 @@ enum AppleAuth {
         case missingIdentityToken
         case accountCollision
         case exchangeFailed(status: Int)
+        case noPresentationAnchor
     }
 }
 
 /// Drives a single ASAuthorizationController flow and bridges its delegate
 /// callbacks to a completion handler. Holds a strong reference to itself for the
-/// duration of the request (Apple always calls exactly one delegate method, so
-/// the reference is always released).
+/// duration of the request, released the first time `deliver` runs — from a
+/// delegate callback in the normal case, or from `presentationAnchor` if there is
+/// no window to present in. `deliver` is idempotent so the reference is released
+/// exactly once.
 private final class SignInController: NSObject,
                                       ASAuthorizationControllerDelegate,
                                       ASAuthorizationControllerPresentationContextProviding {
@@ -123,6 +125,7 @@ private final class SignInController: NSObject,
     private let completion: (Result<AppleAuth.Credential, Swift.Error>) -> Void
     private let rawNonce: String
     private var selfRetain: SignInController?
+    private var delivered = false
 
     init(presenter: UIViewController,
          completion: @escaping (Result<AppleAuth.Credential, Swift.Error>) -> Void) {
@@ -167,16 +170,31 @@ private final class SignInController: NSObject,
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         // The presenter is the on-screen Hotwire destination when the button is
-        // tapped, so it normally has a window; fall back to the app's root window
-        // rather than a detached one if it somehow doesn't.
-        presenter.view.window ?? App.shared.rootViewController.view.window ?? ASPresentationAnchor()
+        // tapped, so it normally has a window; fall back to the app's root window.
+        if let window = presenter.view.window ?? App.shared.rootViewController.view.window {
+            return window
+        }
+        // No on-screen window: the sheet can't really present. Fail loudly so the web
+        // button re-enables (deliver is idempotent) instead of handing back a detached
+        // anchor the system would silently fail to present on — which would fire no
+        // delegate callback, leaking this controller + presenter and leaving the
+        // button stuck disabled.
+        #if DEBUG
+        print("[AppleSignIn] no presentation anchor available; aborting")
+        #endif
+        deliver(.failure(AppleAuth.Error.noPresentationAnchor))
+        return ASPresentationAnchor()
     }
 
     /// Deliver the result on the main queue (matching AppleAuth.exchange and
-    /// GoogleAuth) and release the self-retain last, so the object stays alive
-    /// until the caller's completion has run.
+    /// GoogleAuth) and release the self-retain last, so the object stays alive until
+    /// the caller's completion has run. Idempotent: only the first call runs the
+    /// completion, so the presentationAnchor-failure path and a late ASAuthorization
+    /// delegate callback can't double-reply.
     private func deliver(_ result: Result<AppleAuth.Credential, Swift.Error>) {
         DispatchQueue.main.async {
+            guard !self.delivered else { return }
+            self.delivered = true
             self.completion(result)
             self.selfRetain = nil
         }
