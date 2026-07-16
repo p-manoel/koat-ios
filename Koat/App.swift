@@ -44,8 +44,7 @@ final class App {
     // MARK: - Deep links (push notification taps)
 
     func handleDeepLink(path: String) {
-        let url = path.hasPrefix("http") ? URL(string: path)
-                                         : URL(string: App.baseURL + path)
+        let url = Self.deepLinkURL(for: path)
         guard let url else { return }
         DispatchQueue.main.async {
             if self.started {
@@ -54,6 +53,15 @@ final class App {
                 self.pendingDeepLinkURL = url    // cold start: buffer until start()
             }
         }
+    }
+
+    static func deepLinkURL(for path: String, baseURL: String = App.baseURL) -> URL? {
+        if path.hasPrefix("http://") || path.hasPrefix("https://") {
+            return URL(string: path)
+        }
+
+        guard path.hasPrefix("/") else { return nil }
+        return URL(string: baseURL + path)
     }
 }
 

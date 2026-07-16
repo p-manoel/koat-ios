@@ -69,13 +69,11 @@ class PushNotificationManager {
             let cookieHeader = cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
             request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
             
-            let body: [String: Any] = [
-                "push_subscription": [
-                    "platform": "ios",
-                    "device_token": token,
-                    "device_id": self.deviceId
-                ]
-            ]
+            let body = Self.registrationPayload(
+                token: token,
+                deviceId: self.deviceId,
+                timeZoneIdentifier: TimeZone.autoupdatingCurrent.identifier
+            )
             
             do {
                 request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -102,6 +100,21 @@ class PushNotificationManager {
                 }
             }.resume()
         }
+    }
+
+    static func registrationPayload(
+        token: String,
+        deviceId: String,
+        timeZoneIdentifier: String
+    ) -> [String: Any] {
+        [
+            "push_subscription": [
+                "platform": "ios",
+                "device_token": token,
+                "device_id": deviceId,
+                "time_zone": timeZoneIdentifier
+            ]
+        ]
     }
     
     /// Unsubscribes this device from push notifications
@@ -134,4 +147,3 @@ class PushNotificationManager {
         }
     }
 }
-

@@ -30,6 +30,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         
         // Configure push notifications
         configureNotifications(application)
+        observeSystemTimeZoneChanges()
         
         return true
     }
@@ -55,6 +56,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 print("[Push] Permission denied")
             }
         }
+    }
+
+    private func observeSystemTimeZoneChanges() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(systemTimeZoneDidChange),
+            name: Notification.Name.NSSystemTimeZoneDidChange,
+            object: nil
+        )
+    }
+
+    @objc private func systemTimeZoneDidChange() {
+        PushNotificationManager.shared.refreshTokenRegistration()
     }
     
     // MARK: - Push Token Registration
