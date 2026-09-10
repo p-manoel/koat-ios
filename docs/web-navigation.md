@@ -3,7 +3,14 @@
 Koat displays the Rails mobile interface in one persistent `WKWebView`.
 Browser Turbo owns links, forms, page previews, its progress bar and history.
 The current page stays visible while a first-time destination loads. There is
-no native navigation stack, path configuration or branded loading overlay.
+no native navigation stack or path configuration. The Koat mark appears in the
+system launch storyboard and stays above the web view, in the same composition,
+until its first document finishes loading (`LaunchArtwork` holds the shared
+values; a test checks the two stay in step). The cover then dissolves with a
+critically damped spring while the mark grows slightly, continuing the icon zoom
+the system started; with Reduce Motion it only cross-fades. The cover is removed
+permanently for that web view; ordinary page visits, sign-in redirects and
+recovery do not recreate it.
 
 `AppWebViewController` hosts the web view, installs Hotwire's **bridge only**,
 and supplies native capabilities. Do not create a Hotwire `Session`/`Navigator`
