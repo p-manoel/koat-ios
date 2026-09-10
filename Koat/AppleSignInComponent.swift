@@ -100,7 +100,7 @@ final class AppleSignInComponent: BridgeComponent {
             finishOnWeb()
             return
         }
-        App.shared.navigator.route(url, options: VisitOptions(action: .replace))
+        App.shared.redeemSession(at: url)
     }
 
     /// Reply to the web so its Stimulus controller can re-enable the button when the

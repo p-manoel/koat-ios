@@ -10,9 +10,11 @@ import WebKit
 
 class PDFExportHandler: NSObject {
 
+    private let dataStore: WKWebsiteDataStore
     weak var presentingViewController: UIViewController?
 
-    init(presentingViewController: UIViewController?) {
+    init(presentingViewController: UIViewController?, dataStore: WKWebsiteDataStore = .default()) {
+        self.dataStore = dataStore
         self.presentingViewController = presentingViewController
         super.init()
     }
@@ -23,7 +25,6 @@ class PDFExportHandler: NSObject {
         }
 
         // Get cookies from WebView for authentication
-        let dataStore = WKWebsiteDataStore.default()
         dataStore.httpCookieStore.getAllCookies { [weak self] cookies in
             guard let self = self else { return }
 

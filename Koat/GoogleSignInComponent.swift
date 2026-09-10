@@ -63,7 +63,7 @@ final class GoogleSignInComponent: BridgeComponent {
         var components = URLComponents(string: "\(App.baseURL)/hotwire/native/session")
         components?.queryItems = [URLQueryItem(name: "token", value: handoffToken)]
         guard let url = components?.url else { return }
-        App.shared.navigator.route(url, options: VisitOptions(action: .replace))
+        App.shared.redeemSession(at: url)
     }
 
     /// Reply to the web so its Stimulus controller can re-enable the button when

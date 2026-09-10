@@ -33,8 +33,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidBecomeActive(_ scene: UIScene) {
         // Clear badge when app becomes active
         UNUserNotificationCenter.current().setBadgeCount(0)
-        // Web-view recovery and background tracking are handled automatically
-        // by Hotwire's AppLifecycleObserver as of 1.2.2.
+        App.shared.webViewController.recoverIfNeeded()
     }
 
     func sceneWillEnterForeground(_ scene: UIScene) {
