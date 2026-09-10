@@ -43,7 +43,8 @@ final class WebNavigationTests: XCTestCase {
         try await waitFor("!!document.querySelector('.turbo-progress-bar')")
         try await assertJS("document.body.dataset.page === 'home'")
         try await assertJS("document.querySelector('#navbar').getBoundingClientRect().height > 0")
-        XCTAssertTrue(controller.view.subviews.allSatisfy { $0 is WKWebView || $0 is UIProgressView })
+        // The launch cover from setUp may still be dissolving; only the web view and progress bar remain.
+        try await waitUntil { self.controller.view.subviews.allSatisfy { $0 is WKWebView || $0 is UIProgressView } }
         server.releaseExercises()
         try await waitFor("document.body.dataset.page === 'exercises'")
         try await assertJS("window.originalDocument === document")
@@ -56,6 +57,46 @@ final class WebNavigationTests: XCTestCase {
         try await waitFor("document.body.dataset.page === 'exercises'")
         try await assertJS("nativeBridge.supportedComponents.includes('apple-sign-in') && nativeBridge.supportedComponents.includes('google-sign-in')")
         XCTAssertNil(controller.navigationController)
+    }
+
+    func testLaunchLogoStaysUntilFirstPageLoadsAndNeverReturns() async throws {
+        controller = AppWebViewController(rootURL: server.rootURL, dataStore: .nonPersistent())
+        window.rootViewController = controller
+        controller.navigate(to: server.rootURL.appendingPathComponent("exercises"))
+        try await waitUntil { self.server.hasHeldResponse }
+        let cover = try XCTUnwrap(controller.view.subviews.first { $0.accessibilityIdentifier == "launchCover" })
+        XCTAssertFalse(cover.isHidden)
+        XCTAssertTrue(cover.subviews.contains { ($0 as? UIImageView)?.image != nil })
+        server.releaseExercises()
+        try await waitFor("document.body.dataset.page === 'exercises'")
+        try await waitUntil { cover.superview == nil }
+        controller.navigate(to: server.rootURL.appendingPathComponent("settings"), replacingDocument: true)
+        try await waitFor("document.body.dataset.page === 'settings'")
+        XCTAssertFalse(controller.view.subviews.contains { $0.accessibilityIdentifier == "launchCover" })
+    }
+
+    func testLaunchCoverContinuesSystemLaunchArtworkWithoutASeam() throws {
+        let bounds = CGRect(x: 0, y: 0, width: 393, height: 852)
+        let launch = try XCTUnwrap(UIStoryboard(name: "LaunchScreen", bundle: Bundle(for: AppWebViewController.self)).instantiateInitialViewController())
+        launch.view.frame = bounds
+        launch.view.layoutIfNeeded()
+        let systemMark = try XCTUnwrap(launch.view.subviews.compactMap { $0 as? UIImageView }.first { $0.image != nil })
+
+        let cold = AppWebViewController(rootURL: server.rootURL, dataStore: .nonPersistent())
+        cold.view.frame = bounds
+        cold.view.layoutIfNeeded()
+        let cover = try XCTUnwrap(cold.view.subviews.first { $0.accessibilityIdentifier == "launchCover" })
+        let coverMark = try XCTUnwrap(cover.subviews.compactMap { $0 as? UIImageView }.first { $0.image != nil })
+
+        XCTAssertEqual(rgba(launch.view.backgroundColor), rgba(cover.backgroundColor))
+        XCTAssertEqual(systemMark.image?.size, coverMark.image?.size)
+        XCTAssertEqual(systemMark.contentMode, coverMark.contentMode)
+        XCTAssertEqual(systemMark.frame.origin.x, coverMark.frame.origin.x, accuracy: 0.5)
+        XCTAssertEqual(systemMark.frame.origin.y, coverMark.frame.origin.y, accuracy: 0.5)
+        XCTAssertEqual(systemMark.frame.size, coverMark.frame.size)
+        XCTAssertEqual(coverMark.frame.size, CGSize(width: LaunchArtwork.markSize, height: LaunchArtwork.markSize))
+        XCTAssertEqual(coverMark.center.y, bounds.midY * LaunchArtwork.markCenterYMultiplier, accuracy: 0.5)
+        XCTAssertTrue(cover.accessibilityViewIsModal)
     }
 
     func testNativeDeepLinkUsesTurboAndQuotesURLSafely() async throws {
@@ -174,6 +215,12 @@ final class WebNavigationTests: XCTestCase {
     private func assertJS(_ script: String, file: StaticString = #filePath, line: UInt = #line) async throws {
         let result = try await webView.evaluateJavaScript(script) as? Bool
         XCTAssertEqual(result, true, script, file: file, line: line)
+    }
+
+    private func rgba(_ color: UIColor?) -> [CGFloat]? {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard color?.getRed(&r, green: &g, blue: &b, alpha: &a) == true else { return nil }
+        return [r, g, b, a].map { ($0 * 1000).rounded() / 1000 }
     }
 
     private func waitFor(_ script: String, file: StaticString = #filePath, line: UInt = #line) async throws {
