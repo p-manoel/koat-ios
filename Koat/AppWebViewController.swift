@@ -16,7 +16,7 @@ final class AppWebViewController: UIViewController, BridgeDestination {
     private(set) var bridgeDelegate: BridgeDelegate!
     private var pdfExportHandler: PDFExportHandler!
     private let progressView = UIProgressView(progressViewStyle: .bar)
-    private var launchCover: UIView?
+    private var launchCover: LaunchCoverView?
     private var progressObservation: NSKeyValueObservation?
     private var pendingNavigation: (url: URL, replacingDocument: Bool)?
     private var documentReady = false
@@ -82,30 +82,16 @@ final class AppWebViewController: UIViewController, BridgeDestination {
         configuration.userContentController.add(WeakScriptMessageHandler(self), name: "pageLoaded")
 
         // Continue the system launch artwork until the first document is ready.
-        // Same composition as LaunchScreen.storyboard (see LaunchArtwork), so the
-        // handoff from the system image has no seam. Created once here, never in
-        // navigation callbacks.
-        let cover = UIView()
-        cover.accessibilityIdentifier = "launchCover"
-        cover.accessibilityViewIsModal = true
-        cover.backgroundColor = LaunchArtwork.canvas
-        cover.translatesAutoresizingMaskIntoConstraints = false
-        let mark = UIImageView(image: UIImage(named: "KoatLogo"))
-        mark.contentMode = .scaleAspectFit
-        mark.accessibilityLabel = "Koat"
-        mark.isAccessibilityElement = true
-        mark.translatesAutoresizingMaskIntoConstraints = false
-        cover.addSubview(mark)
+        // LaunchCoverView repeats the LaunchScreen.storyboard composition (see
+        // LaunchArtwork), so the handoff from the system image has no seam.
+        // Created once here, never in navigation callbacks.
+        let cover = LaunchCoverView()
         view.addSubview(cover)
         NSLayoutConstraint.activate([
             cover.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             cover.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             cover.topAnchor.constraint(equalTo: view.topAnchor),
-            cover.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            mark.centerXAnchor.constraint(equalTo: cover.centerXAnchor),
-            NSLayoutConstraint(item: mark, attribute: .centerY, relatedBy: .equal, toItem: cover, attribute: .centerY, multiplier: LaunchArtwork.markCenterYMultiplier, constant: 0),
-            mark.widthAnchor.constraint(equalToConstant: LaunchArtwork.markSize),
-            mark.heightAnchor.constraint(equalToConstant: LaunchArtwork.markSize)
+            cover.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         launchCover = cover
 
@@ -207,22 +193,13 @@ final class AppWebViewController: UIViewController, BridgeDestination {
         present(alert, animated: true)
     }
 
-    /// The first page is ready underneath: let the mark lift away. The cover is
-    /// forgotten immediately so later loads never bring it back; the animation
-    /// owns the view until it is gone. With Reduce Motion the mark only fades.
+    /// The first page is ready underneath: let the cover go. It is forgotten
+    /// immediately so later loads never bring it back; the view owns its exit
+    /// animation and removes itself when done.
     private func dismissLaunchCover() {
         guard let cover = launchCover else { return }
         launchCover = nil
-        let mark = cover.subviews.first
-        let liftsAway = !UIAccessibility.isReduceMotionEnabled
-        UIView.animate(springDuration: LaunchArtwork.handoffDuration, bounce: 0, animations: {
-            cover.alpha = 0
-            if liftsAway {
-                mark?.transform = CGAffineTransform(scaleX: LaunchArtwork.handoffScale, y: LaunchArtwork.handoffScale)
-            }
-        }, completion: { _ in
-            cover.removeFromSuperview()
-        })
+        cover.dismiss()
     }
 }
 

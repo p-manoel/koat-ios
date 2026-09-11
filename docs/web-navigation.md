@@ -4,13 +4,16 @@ Koat displays the Rails mobile interface in one persistent `WKWebView`.
 Browser Turbo owns links, forms, page previews, its progress bar and history.
 The current page stays visible while a first-time destination loads. There is
 no native navigation stack or path configuration. The Koat mark appears in the
-system launch storyboard and stays above the web view, in the same composition,
-until its first document finishes loading (`LaunchArtwork` holds the shared
-values; a test checks the two stay in step). The cover then dissolves with a
-critically damped spring while the mark grows slightly, continuing the icon zoom
-the system started; with Reduce Motion it only cross-fades. The cover is removed
-permanently for that web view; ordinary page visits, sign-in redirects and
-recovery do not recreate it.
+system launch storyboard, and `LaunchCoverView` keeps it above the web view, in
+the same composition, until the first document finishes loading (`LaunchArtwork`
+holds the shared values; a test checks the two stay in step). One idea governs
+the cover's motion: the K is a stroke that flicks up and to the right. If the
+page has not arrived within 0.4s, a soft highlight clipped to the glyph travels
+along that stroke every 2.4s. When the page is ready the mark lifts along the
+stroke on a critically damped spring and the canvas melts a beat behind it; with
+Reduce Motion the mark stays still and the cover only cross-fades. The cover is
+removed permanently for that web view; ordinary page visits, sign-in redirects
+and recovery do not recreate it.
 
 `AppWebViewController` hosts the web view, installs Hotwire's **bridge only**,
 and supplies native capabilities. Do not create a Hotwire `Session`/`Navigator`
@@ -36,7 +39,9 @@ termination reloads the current URL when the shell is visible and active.
 
 ## Verification
 
-Run `WebNavigationTests` in the Koat test target on an iOS simulator. These tests
+Run `WebNavigationTests` and `LaunchCoverTests` in the Koat test target on an iOS
+simulator. `LaunchCoverTests` covers the cover's waiting and handoff motion and
+its Reduce Motion variant. The navigation tests
 host a loopback HTTP server and bundled Turbo 8.0.23; Rails and a user login are not
 required. They cover delayed first visits, document identity, browser history,
 bridge messages/replies, deep links, handoff redirects/cookies, push-registration

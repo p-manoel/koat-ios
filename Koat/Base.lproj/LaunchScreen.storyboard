@@ -6,7 +6,7 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Launch artwork. Mirrors LaunchArtwork.swift: a 120pt K on white at 0.9 x centerY. AppWebViewController redraws this exact composition until the first page is ready, so keep both in step.-->
+        <!--Launch artwork. Mirrors LaunchArtwork.swift: a 120pt K on white, centred. LaunchCoverView redraws this exact composition until the first page is ready (then lights and lifts it), so keep both in step.-->
         <scene sceneID="EHf-IW-A2E">
             <objects>
                 <viewController id="01J-lp-oVM" sceneMemberID="viewController">
@@ -15,7 +15,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" image="KoatLogo" translatesAutoresizingMaskIntoConstraints="NO" id="logo-launch">
-                                <rect key="frame" x="127.5" y="240" width="120" height="120"/>
+                                <rect key="frame" x="127.5" y="273.5" width="120" height="120"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="120" id="logo-width"/>
                                     <constraint firstAttribute="height" constant="120" id="logo-height"/>
@@ -26,7 +26,7 @@
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <constraints>
                             <constraint firstItem="logo-launch" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="logo-center-x"/>
-                            <constraint firstItem="logo-launch" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" multiplier="0.9" id="logo-center-y"/>
+                            <constraint firstItem="logo-launch" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="logo-center-y"/>
                         </constraints>
                     </view>
                 </viewController>
