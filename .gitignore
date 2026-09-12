@@ -1,0 +1,6 @@
+goldie/out/
+goldie/build/
+.argent/secrets.env
+.argent/results/
+
+.argent/recordings/

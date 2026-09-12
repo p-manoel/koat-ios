@@ -1,0 +1,37 @@
+{
+  "steps": [
+    {
+      "launch": "Koat.Koat"
+    },
+    {
+      "tool": "await-ui-element",
+      "args": {
+        "condition": "visible",
+        "selector": {
+          "text": "Ver todos os alunos"
+        },
+        "timeoutMs": 15000
+      }
+    },
+    {
+      "echo": "Ver todos os alunos — posição conferida na árvore de acessibilidade do iPhone 17 Pro Max."
+    },
+    {
+      "tool": "gesture-tap",
+      "args": {
+        "x": 0.22,
+        "y": 0.787
+      }
+    },
+    {
+      "tool": "await-ui-element",
+      "args": {
+        "condition": "visible",
+        "selector": {
+          "text": "Buscar aluno"
+        },
+        "timeoutMs": 15000
+      }
+    }
+  ]
+}

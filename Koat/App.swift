@@ -5,7 +5,7 @@ final class App {
     static let shared = App()
 
     nonisolated static let baseURL: String = {
-        #if DEBUG
+        #if DEBUG || (GOLDIE_CAPTURE && targetEnvironment(simulator))
         return "http://app.localhost:3000"
         #else
         return "https://app.koat.io"

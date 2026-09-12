@@ -1,0 +1,79 @@
+diff --git a/app/javascript/controllers/exercise_history_chart_controller.js b/app/javascript/controllers/exercise_history_chart_controller.js
+index becf7b67..ad2963e0 100644
+--- a/app/javascript/controllers/exercise_history_chart_controller.js
++++ b/app/javascript/controllers/exercise_history_chart_controller.js
+@@ -55,6 +55,9 @@ export default class extends Controller {
+       xaxis: {
+         type: "datetime",
+         labels: {
++          formatter: (_value, timestamp) => new Intl.DateTimeFormat(document.documentElement.lang || "pt-BR", {
++            day: "2-digit", month: "short"
++          }).format(new Date(timestamp)),
+           style: {
+             colors: "#9ca3af",
+             fontSize: "12px"
+diff --git a/app/javascript/controllers/reps_range_toggle_controller.js b/app/javascript/controllers/reps_range_toggle_controller.js
+index a627ad64..2381d8d4 100644
+--- a/app/javascript/controllers/reps_range_toggle_controller.js
++++ b/app/javascript/controllers/reps_range_toggle_controller.js
+@@ -40,7 +40,7 @@ export default class extends Controller {
+ 
+   #updateLabel() {
+     if (this.hasLabelTarget) {
+-      this.labelTarget.textContent = this.expandedValue ? "Min - Max" : "Reps"
++      this.labelTarget.textContent = this.expandedValue ? "Mín - Máx" : "Repetições"
+     }
+     if (this.hasIconTarget) {
+       // Rotate chevron: right (collapsed) → down (expanded)
+diff --git a/app/views/clients/_active_plan_content.html.erb b/app/views/clients/_active_plan_content.html.erb
+index d995b913..af5f45fb 100644
+--- a/app/views/clients/_active_plan_content.html.erb
++++ b/app/views/clients/_active_plan_content.html.erb
+@@ -112,7 +112,7 @@
+         <%= link_to client_training_insight_path(client),
+             data: { turbo_stream: true },
+             class: canvas_pill_classes(icon_only_below_sm: true),
+-            aria: { label: "Insights de treino" } do %>
++            aria: { label: "Análise de treino" } do %>
+           <%= icon "trending-up", class: "size-4 shrink-0 text-gray-500" %>
+           <span class="hidden sm:inline">Insights</span>
+         <% end %>
+diff --git a/app/views/clients/training_insights/show.html.erb b/app/views/clients/training_insights/show.html.erb
+index 6ec553e7..90b48e01 100644
+--- a/app/views/clients/training_insights/show.html.erb
++++ b/app/views/clients/training_insights/show.html.erb
+@@ -2,7 +2,7 @@
+ 
+ <div class="min-h-dvh bg-white">
+   <div class="sticky top-0 z-10 border-b border-gray-100 bg-white px-4 py-3">
+-    <h1 class="text-center text-lg font-bold tracking-tight text-gray-900">Insights de treino</h1>
++    <h1 class="text-center text-lg font-bold tracking-tight text-gray-900">Análise de treino</h1>
+   </div>
+ 
+   <div class="px-4 py-4">
+diff --git a/app/views/clients/training_insights/show.turbo_stream.erb b/app/views/clients/training_insights/show.turbo_stream.erb
+index 31e75b54..2beedc91 100644
+--- a/app/views/clients/training_insights/show.turbo_stream.erb
++++ b/app/views/clients/training_insights/show.turbo_stream.erb
+@@ -1,7 +1,7 @@
+ <%= turbo_stream.append_all "body" do %>
+   <%= render ModalDialogComponent.new(
+     id: "training-insights-modal",
+-    title: "Insights de treino",
++    title: "Análise de treino",
+     size: :lg,
+     close_button: true,
+     html_options: { data: { controller: "dialog" } }
+diff --git a/config/initializers/bullet.rb b/config/initializers/bullet.rb
+index 54c88d46..4c940e7a 100644
+--- a/config/initializers/bullet.rb
++++ b/config/initializers/bullet.rb
+@@ -12,7 +12,7 @@ if defined?(Bullet)
+   Bullet.rails_logger = true # Output to Rails log (log/development.log)
+ 
+   # Optional: Add footer with detected issues (useful for development)
+-  Bullet.add_footer = true if Rails.env.development?
++  Bullet.add_footer = ENV["GOLDIE_CAPTURE"] != "1" if Rails.env.development?
+ 
+   # Detection features
+   Bullet.n_plus_one_query_enable = true # Detect N+1 queries

@@ -1,0 +1,19 @@
+{
+  "executionPrerequisite": "Sessão do treinador no ponto inicial deste segmento; executar com capture-session.mjs.",
+  "steps": [
+    {
+      "tool": "screen-recording-start",
+      "args": {
+        "timeLimitSeconds": 120,
+        "trimStatic": false,
+        "showTouches": false
+      }
+    },
+    {
+      "run": "store-preview-01-aluna.yaml"
+    },
+    {
+      "tool": "screen-recording-stop"
+    }
+  ]
+}

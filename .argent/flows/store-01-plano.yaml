@@ -1,0 +1,7 @@
+{
+  "steps": [
+    {
+      "run": "store-mariana.yaml"
+    }
+  ]
+}
