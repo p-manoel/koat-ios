@@ -6,8 +6,8 @@ import UIKit
 /// the handoff has no seam. The storyboard mirrors these values by hand;
 /// `WebNavigationTests` checks that the two stay in step.
 ///
-/// One idea governs every motion here. The K is a single stroke that flicks up
-/// and to the right, and the icon's gradient is lit from that corner. While the
+/// The K uses the app icon's outlined geometry in brand blue on white.
+/// Its upper stroke points up and to the right. While the
 /// page loads, light travels along the stroke. When the page is ready, the mark
 /// leaves along the stroke. Nothing else moves.
 enum LaunchArtwork {
@@ -28,8 +28,8 @@ enum LaunchArtwork {
 
     // MARK: Waiting: light travels along the stroke
 
-    /// A soft highlight climbs the mark from bottom-left to top-right, toward the
-    /// light the icon's own gradient implies. It is clipped to the glyph, so the
+    /// A soft highlight climbs the mark from bottom-left to top-right, along its
+    /// upper stroke. It is clipped to the glyph, so the
     /// canvas itself never shimmers.
     static let sheenTint = UIColor.white
     static let sheenPeakAlpha: CGFloat = 0.5

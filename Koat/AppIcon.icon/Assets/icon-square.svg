@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Koat app icon — rounded tile</title>
+  <desc id="desc">Koat vector reconstruction from the selected generated concept. Flat fills; lettering outlined; no embedded fonts or raster images.</desc>
+<rect id="icon-background" width="1024" height="1024" fill="#2563EB"/>
+<g id="icon-mark" transform="translate(512 512) scale(3.30233062) translate(-105.75 -119.75)">
+<g id="symbol" fill="#FFFFFF">
+  <path id="symbol-upper" d="M 107.2 27.5 H 188.8 C 192.2 27.5 193 29.5 190.6 31.8 L 26.5 179.6 C 22.8 182.9 19.5 181 19.5 176.7 V 110 C 19.5 105.1 21.3 101.1 24.8 97.8 L 93.4 33.1 C 97.8 29 102 27.5 107.2 27.5 Z"/>
+  <path id="symbol-lower" d="M 106.5 134 C 109.3 131.3 113.5 131.3 116.2 134 L 190.7 206.4 C 193.4 209 192.1 212 188.9 212 H 114 C 110.4 212 107.4 210.8 104.8 208.3 L 71.3 175.3 C 67.9 172 68.2 167.4 71.4 164.1 Z"/>
+</g>
+</g>
+</svg>
