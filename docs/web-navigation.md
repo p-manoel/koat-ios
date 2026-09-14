@@ -20,12 +20,18 @@ and supplies native capabilities. Do not create a Hotwire `Session`/`Navigator`
 or register its Turbo adapter: doing so takes navigation away from browser Turbo.
 The Hotwire package remains a dependency for the Apple and Google bridge components.
 
-Native entry points use `navigate(to:)`. Warm push links call `Turbo.visit` with
+Internal native entry points use `navigate(to:)`. Warm push links call `Turbo.visit` with
 WebKit-serialized arguments; cold links load directly, and links received during
 a document load wait for it to finish. Apple/Google handoff redemption uses
 `location.replace`, starting a fresh document and Turbo cache while retaining the
 shared cookie store. Cookie changes and page-render completion trigger a push-token
 registration refresh when the `session_id` changes.
+
+External HTTP(S) notification links go through `UIApplication.open`, allowing
+App Store links to launch the store. Cold-start notification links wait until
+the app shell starts; external destinations never load in the authenticated
+web view. Notification URLs with other schemes, missing hosts or embedded
+credentials are ignored.
 
 WebKit's back/forward gestures operate on browser history. Same-origin new-window
 links open in the existing web view. External HTTP(S) pages open in Safari's in-app

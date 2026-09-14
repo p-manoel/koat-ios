@@ -108,6 +108,57 @@ final class WebNavigationTests: XCTestCase {
         XCTAssertEqual(query, "'\"+&")
     }
 
+    func testNotificationOpensAppStoreOutsideRunningApp() async throws {
+        var opened: [URL] = []
+        let app = App(rootURL: server.rootURL, openExternalURL: { opened.append($0) })
+        controller = app.webViewController
+        window.rootViewController = app.rootViewController
+        app.start()
+        try await waitFor("document.body?.dataset.page === 'home'")
+        let storeURL = URL(string: "https://apps.apple.com/br/app/koat/id6748588637")!
+
+        app.handleDeepLink(path: storeURL.absoluteString)
+
+        XCTAssertEqual(opened, [storeURL])
+        XCTAssertEqual(webView.url, server.rootURL)
+    }
+
+    func testNotificationOpensAppStoreOnceAfterColdStart() async throws {
+        var opened: [URL] = []
+        let app = App(rootURL: server.rootURL, openExternalURL: { opened.append($0) })
+        let storeURL = URL(string: "https://apps.apple.com/br/app/koat/id6748588637")!
+        app.handleDeepLink(path: storeURL.absoluteString)
+        XCTAssertTrue(opened.isEmpty)
+
+        controller = app.webViewController
+        window.rootViewController = app.rootViewController
+        app.start()
+        app.start()
+
+        XCTAssertEqual(opened, [storeURL])
+        try await waitFor("document.body?.dataset.page === 'home'")
+        XCTAssertEqual(webView.url, server.rootURL)
+    }
+
+    func testNotificationKeepsInternalLinksInAppAndRejectsUnsafeURLs() async throws {
+        var opened: [URL] = []
+        let app = App(rootURL: server.rootURL, openExternalURL: { opened.append($0) })
+        app.handleDeepLink(path: "/settings?ref=push")
+        controller = app.webViewController
+        window.rootViewController = app.rootViewController
+        app.start()
+        try await waitFor("document.body?.dataset.page === 'settings'")
+        XCTAssertEqual(webView.url?.query, "ref=push")
+
+        app.handleDeepLink(path: server.rootURL.absoluteString)
+        try await waitFor("document.body?.dataset.page === 'home'")
+        for path in ["javascript:alert(1)", "file:///tmp/test", "https://user:password@example.com", "https://"] {
+            app.handleDeepLink(path: path)
+        }
+        XCTAssertTrue(opened.isEmpty)
+        XCTAssertEqual(webView.url, server.rootURL)
+    }
+
     func testSessionRedemptionReplacesDocumentAndKeepsCookie() async throws {
         try await run("window.oldSessionMarker = true")
         controller.navigate(to: server.rootURL.appendingPathComponent("session"), replacingDocument: true)
