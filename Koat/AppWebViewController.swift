@@ -23,6 +23,8 @@ final class AppWebViewController: UIViewController, BridgeDestination {
     private var needsRecovery = false
     private var retryURL: URL?
     private var lastSessionCookie: String?
+    private var checkoutRecoveryURL: URL?
+    private var renderedPageURL: URL?
 
     init(rootURL: URL, dataStore: WKWebsiteDataStore = .default(), sessionDidChange: @escaping () -> Void = { PushNotificationManager.shared.refreshTokenRegistration() }) {
         self.rootURL = rootURL
@@ -43,7 +45,7 @@ final class AppWebViewController: UIViewController, BridgeDestination {
         let configuration = WKWebViewConfiguration()
         let names = Self.bridgeComponents.map { $0.name }.joined(separator: " ")
         // Rails receives the full mobile web interface, plus native sign-in buttons.
-        configuration.applicationNameForUserAgent = "Koat iOS; bridge-components: [\(names)]"
+        configuration.applicationNameForUserAgent = "Koat iOS; KoatCheckoutReturn/1; bridge-components: [\(names)]"
         configuration.websiteDataStore = dataStore
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
@@ -121,6 +123,7 @@ final class AppWebViewController: UIViewController, BridgeDestination {
         super.viewDidAppear(animated)
         bridgeDelegate.onViewDidAppear()
         recoverIfNeeded()
+        if presentedViewController == nil { recoverCheckoutIfNeeded() }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -168,10 +171,41 @@ final class AppWebViewController: UIViewController, BridgeDestination {
         webView.load(URLRequest(url: webView.url ?? rootURL))
     }
 
+    /// Replace any canceled POST/redirect with a fresh authenticated GET. The
+    /// cookie store survives; no callback is treated as proof of payment.
+    func returnFromCheckout(to url: URL) {
+        guard policy.isInternal(url) else { return }
+        checkoutRecoveryURL = nil
+        let resume = { [weak self] in
+            guard let self else { return }
+            self.loadViewIfNeeded()
+            self.webView.stopLoading()
+            self.pendingNavigation = nil
+            self.needsRecovery = false
+            self.webView.load(URLRequest(url: url))
+        }
+        if presentedViewController is SFSafariViewController {
+            dismiss(animated: true, completion: resume)
+        } else {
+            resume()
+        }
+    }
+
+    private func recoverCheckoutIfNeeded() {
+        guard let url = checkoutRecoveryURL else { return }
+        returnFromCheckout(to: url)
+    }
+
     private func openExternal(_ url: URL) {
         guard presentedViewController == nil else { return }
         if ["https", "http"].contains(url.scheme?.lowercased() ?? "") {
-            present(SFSafariViewController(url: url), animated: true)
+            if url.scheme == "https", url.host == "checkout.stripe.com" {
+                checkoutRecoveryURL = CheckoutReturnLink(rootURL: rootURL).recoveryURL(from: renderedPageURL ?? webView.url)
+            }
+            let safari = SFSafariViewController(url: url)
+            safari.delegate = self
+            present(safari, animated: true)
+            safari.presentationController?.delegate = self
         } else if ["mailto", "tel", "sms"].contains(url.scheme?.lowercased() ?? "") {
             UIApplication.shared.open(url)
         }
@@ -200,6 +234,16 @@ final class AppWebViewController: UIViewController, BridgeDestination {
         guard let cover = launchCover else { return }
         launchCover = nil
         cover.dismiss()
+    }
+}
+
+extension AppWebViewController: SFSafariViewControllerDelegate, UIAdaptivePresentationControllerDelegate {
+    func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+        recoverCheckoutIfNeeded()
+    }
+
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        recoverCheckoutIfNeeded()
     }
 }
 
@@ -236,6 +280,7 @@ extension AppWebViewController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         documentReady = true
+        renderedPageURL = webView.url
         progressView.isHidden = true
         dismissLaunchCover()
         cookiesDidChange(in: dataStore.httpCookieStore)
@@ -298,6 +343,7 @@ extension AppWebViewController: WKScriptMessageHandler {
         guard message.frameInfo.isMainFrame,
               let sourceURL = message.frameInfo.request.url, policy.isInternal(sourceURL) else { return }
         if message.name == "pageLoaded" {
+            renderedPageURL = webView.url
             // WKHTTPCookieStore notifications can lag behind an HTTP-only login
             // cookie. Also check after Turbo renders and full document loads.
             cookiesDidChange(in: dataStore.httpCookieStore)

@@ -55,6 +55,17 @@ final class App {
         }
     }
 
+    @discardableResult
+    func handleCheckoutReturn(_ url: URL) -> Bool {
+        guard let destination = CheckoutReturnLink(rootURL: rootURL).destination(for: url) else { return false }
+        if started {
+            webViewController.returnFromCheckout(to: destination)
+        } else {
+            pendingDeepLinkURL = destination
+        }
+        return true
+    }
+
     func redeemSession(at url: URL) {
         webViewController.navigate(to: url, replacingDocument: true)
     }

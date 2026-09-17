@@ -251,6 +251,82 @@ final class WebNavigationTests: XCTestCase {
         try await assertJS("document.body.dataset.page === 'home'")
     }
 
+    func testCheckoutCapabilityIsAdvertisedAlongsideBridgeComponents() async throws {
+        try await assertJS("navigator.userAgent.includes('Koat iOS') && navigator.userAgent.includes('KoatCheckoutReturn/1;')")
+        try await assertJS("nativeBridge.supportedComponents.length === 2")
+    }
+
+    func testCheckoutCallbackClosesSafariAndKeepsAuthenticatedCookie() async throws {
+        controller.navigate(to: server.rootURL.appendingPathComponent("session"), replacingDocument: true)
+        try await waitFor("document.body.dataset.page === 'signed-in'")
+        try await run("location.assign('/escape')")
+        try await waitUntil { self.controller.presentedViewController is SFSafariViewController }
+        let originalWebView = webView
+        controller.returnFromCheckout(to: server.rootURL.appendingPathComponent("subscriptions/checkouts/123/return"))
+        try await waitFor("document.body.dataset.page === 'checkout-return'")
+        XCTAssertNil(controller.presentedViewController)
+        XCTAssertTrue(webView === originalWebView)
+        XCTAssertTrue(server.checkoutReceivedSessionCookie)
+    }
+
+    func testCheckoutCallbackSupersedesAnInFlightDocumentLoad() async throws {
+        controller.navigate(to: server.rootURL.appendingPathComponent("exercises"), replacingDocument: true)
+        try await waitUntil { self.server.hasHeldResponse }
+        controller.returnFromCheckout(to: server.rootURL.appendingPathComponent("subscriptions/checkouts/123/return"))
+        try await waitFor("document.body.dataset.page === 'checkout-return'")
+        server.releaseExercises()
+        XCTAssertEqual(webView.url?.path, "/subscriptions/checkouts/123/return")
+    }
+
+    func testCustomCheckoutCallbackWorksBeforeAppStartAndWhileRunning() async throws {
+        var opened: [URL] = []
+        let app = App(rootURL: server.rootURL, openExternalURL: { opened.append($0) })
+        XCTAssertTrue(app.handleCheckoutReturn(URL(string: "koat://checkout-return/123")!))
+        controller = app.webViewController
+        window.rootViewController = app.rootViewController
+        app.start()
+        try await waitFor("document.body?.dataset.page === 'checkout-return'")
+        controller.navigate(to: server.rootURL)
+        try await waitFor("document.body.dataset.page === 'home'")
+        XCTAssertTrue(app.handleCheckoutReturn(URL(string: "koat://checkout-return/123")!))
+        try await waitFor("document.body.dataset.page === 'checkout-return'")
+        XCTAssertFalse(app.handleCheckoutReturn(URL(string: "https://evil.test/subscriptions/checkouts/123/return?app_return=ios")!))
+        XCTAssertTrue(opened.isEmpty)
+    }
+
+    func testManuallyClosingStripeRechecksKnownCheckoutOnce() async throws {
+        controller.navigate(to: server.rootURL.appendingPathComponent("subscriptions/checkouts/123"))
+        try await waitFor("document.body.dataset.page === 'checkout'")
+        try await run("location.assign('https://checkout.stripe.com/c/pay/koat-test')")
+        try await waitUntil { self.controller.presentedViewController is SFSafariViewController }
+        let safari = try XCTUnwrap(controller.presentedViewController as? SFSafariViewController)
+        controller.safariViewControllerDidFinish(safari)
+        try await waitFor("document.body.dataset.page === 'checkout-return'")
+        controller.safariViewControllerDidFinish(safari)
+        XCTAssertEqual(server.requests.filter { $0 == "/subscriptions/checkouts/123/return" }.count, 1)
+    }
+
+    func testClosingInitialCheckoutReturnsToOnboardingWithoutReposting() async throws {
+        controller.navigate(to: server.rootURL.appendingPathComponent("onboarding"))
+        try await waitFor("document.body.dataset.page === 'onboarding'")
+        try await run("document.querySelector('#checkout-form').submit()")
+        try await waitUntil { self.controller.presentedViewController is SFSafariViewController }
+        let safari = try XCTUnwrap(controller.presentedViewController as? SFSafariViewController)
+        controller.safariViewControllerDidFinish(safari)
+        try await waitUntil { self.server.requests.filter { $0 == "/onboarding" }.count == 2 }
+        try await waitFor("document.body.dataset.page === 'onboarding'")
+        XCTAssertEqual(server.requests.filter { $0 == "/subscriptions/checkouts" }.count, 1)
+    }
+
+    func testClosingUnrelatedSafariDoesNotStartCheckoutRecovery() async throws {
+        try await run("location.assign('/escape')")
+        try await waitUntil { self.controller.presentedViewController is SFSafariViewController }
+        let safari = try XCTUnwrap(controller.presentedViewController as? SFSafariViewController)
+        controller.safariViewControllerDidFinish(safari)
+        try await assertJS("document.body.dataset.page === 'home'")
+        XCTAssertFalse(server.requests.contains { $0.hasPrefix("/subscriptions") })
+    }
+
     func testFailedDocumentLoadOffersRetry() async throws {
         try await run("location.assign('/offline')")
         try await waitUntil { self.controller.presentedViewController is UIAlertController }
