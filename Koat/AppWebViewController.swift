@@ -199,10 +199,13 @@ final class AppWebViewController: UIViewController, BridgeDestination {
     private func openExternal(_ url: URL) {
         guard presentedViewController == nil else { return }
         if ["https", "http"].contains(url.scheme?.lowercased() ?? "") {
+            let safari = SFSafariViewController(url: url)
             if url.scheme == "https", url.host == "checkout.stripe.com" {
                 checkoutRecoveryURL = CheckoutReturnLink(rootURL: rootURL).recoveryURL(from: renderedPageURL ?? webView.url)
+                safari.modalPresentationStyle = .pageSheet
+                safari.sheetPresentationController?.detents = [.large()]
+                safari.sheetPresentationController?.prefersGrabberVisible = true
             }
-            let safari = SFSafariViewController(url: url)
             safari.delegate = self
             present(safari, animated: true)
             safari.presentationController?.delegate = self
