@@ -59,3 +59,40 @@ exercise the integration on either side of those external services.
 
 Also smoke-test the physical edge-swipe on a device: automated back/forward
 API tests pass, but the simulator mouse-drag did not verify that gesture.
+
+## Stripe Checkout return
+
+The web view advertises `KoatCheckoutReturn/1` alongside `Koat iOS`. Rails saves
+this capability only on newly created checkout attempts. Existing attempts
+retain their original return URL; create a fresh attempt when testing the new
+flow (resolve/expire the previous attempt through the normal UI first).
+
+`SceneDelegate` forwards warm and cold checkout URLs to `App.handleCheckoutReturn`:
+
+- Universal Links require the configured HTTPS origin, the exact
+  `/subscriptions/checkouts/:numeric_id/return` path and `app_return=ios`.
+  Browser-continuation links are rejected.
+- `koat://checkout-return/:numeric_id` is the fallback. It maps to the build's
+  configured origin, so Debug uses `http://app.localhost:3000` for local QA.
+- Credentials, foreign origins, malformed IDs and custom-scheme query/fragment
+  payloads are rejected. Accepted HTTPS queries are discarded before navigation.
+  Google sign-in callbacks continue to go to the Google SDK.
+
+A callback dismisses Safari and loads a fresh GET in the existing web view and
+cookie store, superseding any canceled/in-flight checkout submission. Rails
+alone checks ownership, Stripe payment state and onboarding completion.
+
+When `checkout.stripe.com` opens, the shell remembers a recovery destination.
+Closing Safari with Done or a dismissal gesture reloads the known checkout's
+return endpoint. If the checkout ID is not yet known (the initial POST redirects
+straight to Stripe), it returns to `/onboarding` or `/subscriptions` for Rails'
+existing recovery flow. Billing may offer its existing Check payment status
+action. Unrelated external pages do not trigger this recovery.
+
+Local QA: rebuild/install the Debug app, start Rails at port 3000, and use a new
+Stripe test checkout. Finish or cancel, then tap Open Koat if automatic return
+is unavailable on localhost. Also close the Safari sheet manually, and test a
+custom-scheme return after terminating the app. Production Universal Links need
+the deployed association file and a signed app with the Associated Domains
+capability enabled for its provisioning profile. Test payment success, cancel,
+delayed confirmation and a cold launch on the signed build before release.

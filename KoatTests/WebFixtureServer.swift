@@ -14,6 +14,7 @@ final class WebFixtureServer {
     private var holdExercises = true
     private var recordedRequests: [String] = []
     private var pdfCookie = false
+    private var checkoutCookie = false
 
     init() throws {
         listener = try NWListener(using: .tcp, on: .any)
@@ -31,6 +32,7 @@ final class WebFixtureServer {
     var rootURL: URL { URL(string: "http://127.0.0.1:\(listener.port!.rawValue)/")! }
     var hasHeldResponse: Bool { queue.sync { !heldResponses.isEmpty } }
     var requests: [String] { queue.sync { recordedRequests } }
+    var checkoutReceivedSessionCookie: Bool { queue.sync { checkoutCookie } }
     var pdfReceivedSessionCookie: Bool { queue.sync { pdfCookie } }
 
     func start() async throws {
@@ -87,6 +89,14 @@ final class WebFixtureServer {
                 self.respond(connection, body: Data(), status: "302 Found", headers: "Location: /signed-in\r\nSet-Cookie: session_id=test-session; Path=/; HttpOnly\r\n")
             case "/escape":
                 self.respond(connection, body: Data(), status: "302 Found", headers: "Location: http://localhost:\(self.listener.port!.rawValue)/outside\r\n")
+            case "/subscriptions/checkouts":
+                self.respond(connection, body: Data(), status: "303 See Other", headers: "Location: https://checkout.stripe.com/c/pay/koat-test\r\n")
+            case "/subscriptions/checkouts/123": self.respond(connection, body: self.page("checkout"))
+            case "/subscriptions/checkouts/123/return":
+                self.checkoutCookie = text.contains("session_id=test-session")
+                self.respond(connection, body: self.page("checkout-return"))
+            case "/onboarding": self.respond(connection, body: self.page("onboarding"))
+            case "/subscriptions": self.respond(connection, body: self.page("subscriptions"))
             case "/offline": connection.cancel()
             case "/signed-in": self.respond(connection, body: self.page("signed-in"))
             case "/settings": self.respond(connection, body: self.page("settings"))
@@ -107,6 +117,7 @@ final class WebFixtureServer {
         </head><body data-page="\(name)"><h1>\(name)</h1>
         <nav id="navbar"><a id="exercises" href="/exercises">Exercícios</a>
         <a id="settings" href="/settings">Mais</a><a href="/" id="home">Home</a></nav>
+        <form action="/subscriptions/checkouts" method="post" data-turbo="false" id="checkout-form"><button>Checkout</button></form>
         <a href="/popup" target="_blank" id="popup">Open</a>
         </body></html>
         """.utf8)
